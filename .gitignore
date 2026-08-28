@@ -1,0 +1,17 @@
+# environment
+.env
+.env.*
+!.env.example
+
+# node
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# misc
+.DS_Store
+*.log
+
+# claude code
+.claude/settings.local.json
