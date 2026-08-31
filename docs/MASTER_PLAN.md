@@ -9,9 +9,10 @@ through `superpowers:writing-plans` first, per `CLAUDE.md`.
 
 ## Status
 
-**M0 done and verified. M1 partially done** (core logging works end-to-end against real Supabase;
-edit/delete UI and account/category deactivation UI are not built yet — the server actions exist,
-the UI to call them doesn't). Next: finish M1's remaining UI, then M2.
+**M0 through M6 are done and verified**, live, against real Supabase (not mocked) — every PRD
+MVP feature (§2-§13) is now built and covered by an automated test that actually runs against
+Postgres. **M7 (Deploy) is the only thing left, and it's entirely blocked on Ammar** — see that
+milestone's own note and `docs/HANDOFF_USER.md`.
 
 The core money-math library (`src/lib/ledger/`) is complete for everything specified in PRD §10 —
 balance, spend, available-to-spend, savings tracking, IOU settlement recompute, recurring
@@ -39,47 +40,91 @@ exists yet — that's `docs/HANDOFF_USER.md` item 2) and a real browser session 
 browser-automation tool available in that session; curl-level HTTP checks and the data-layer
 integration test cover what's checkable without one).
 
-### M1 — Accounts, Categories, core ledger — **in progress**
+### M1 — Accounts, Categories, core ledger — **DONE**
 
-Done: onboarding (starter category template seed, add-account form), Expense/Income logging,
-Dashboard showing real computed balances (privacy-mode masking with per-account reveal), recent
-transactions list. Server actions for edit/delete/deactivate already exist
-(`src/lib/actions/transactions.ts`, `accounts.ts`) including the dependent-row delete-blocking
-rule from §12 — not yet wired to any UI.
+Built: onboarding (starter category template seed, add-account form), Expense/Income logging
+with subcategory selection (§4's blended-vs-detailed choice, one grouped picker), end-of-day
+batch logging (add several lines, save together), edit/delete transaction UI, account/category
+deactivate UI, Dashboard showing real computed balances (privacy-mode masking with per-account
+reveal), recent transactions list.
 
-**Exit test — partially passed.** `src/lib/data/__tests__/end-to-end.integration.test.ts` logs a
-realistic month (salary income, two expenses on different account types, a credit-card bill
-payment) through real Supabase and asserts the resulting balances match PRD §10.1's formula
-exactly (bank: 73349.5, card: 0 owed) — passing. Editing/deleting a transaction through the UI
-and confirming the balance updates with no stale state is NOT yet verified, because that UI
-doesn't exist yet.
+**Exit test — passed, live.**
+- `end-to-end.integration.test.ts`: a realistic month (salary income, two expenses on different
+  account types, a credit-card bill payment) through real Supabase produces exactly the balance
+  PRD §10.1 predicts (bank: 73349.5, card: 0 owed).
+- `edit-delete.integration.test.ts` (added finishing M1): editing a transaction's amount and
+  deleting a transaction both recompute the balance correctly with no stale state; the database's
+  own foreign-key constraints back up §12's delete-blocking rule for real (deleting a transaction
+  a refund is linked to raises a real Postgres constraint violation); deleting a Group Expense's
+  anchor transaction cascades to remove its `Group_Expenses` row and `IOU_Entries` together, per
+  §12's "Delete Group Expense" flow — verified even though the IOU module's own UI doesn't exist
+  yet (M4), because the schema-level cascade behavior needed locking in now while the reasoning
+  was fresh.
 
-**Still open for M1:** edit/delete transaction UI, account/category deactivate UI, subcategory
-support in the add-transaction form (currently only top-level categories are selectable),
-end-of-day batch logging (§4).
+`npm run test:integration` runs all three live-Supabase test files together (12 tests, all
+passing) — `npm test` alone only runs the 50 DB-free unit tests, since integration tests need
+`npx supabase start` (Docker) first.
 
-### M2 — Recurring templates
+### M2 — Recurring templates — **DONE**
 
-Recurring Fixed Expenses and Recurring Income/Salary (§5), confirm-before-posting, earmarking on
-available-to-spend (§10.4). Exit test: a template due today surfaces for confirmation, posting it
-with an edited amount creates the right transaction, and `next_due_date` advances correctly
-across a month-end edge case (§10.11).
+Built: create a recurring template (any of the four frequencies, including `custom` with its
+D-4 interval field), a "Due now" confirm-before-posting flow with an editable amount, transfers
+(added to the transaction form — needed to actually fund a spend account and start a cycle), and
+a Dashboard burn-down card showing the real budget cycle (ceiling, spend so far, earmarked
+upcoming bills, available to spend).
 
-### M3 — Investments & Savings
+**Exit test — passed, live.** `recurring.integration.test.ts`: confirming a template due
+2026-01-31 (monthly) posts a transaction with the user-edited amount and advances
+`next_due_date` to 2026-02-28 — the month-end clamp from §10.11, exercised for real, not just
+unit-tested in isolation. The confirmed posting counts as real spend in its own period. A
+transfer into the spend account is shown to start a new cycle (`findCurrentCycleStart`), and a
+due-but-unconfirmed template correctly earmarks against that cycle's available-to-spend.
 
-Investment Holdings (Equity/MF/PPF) and Savings accounts as two visually separate sections (§6),
-SIP as a recurring template variant. Exit test: an investment contribution never counts as spend,
-a savings transfer shows correctly in the savings-rate calculation (§10.5) including the
-gross-not-net-of-withdrawal behaviour, and a savings-to-savings transfer is excluded from "raw
-savings tracked."
+Two real ambiguities in the PRD's §10.11/§5 text — what happens with more than one top-up
+transfer, and exactly which unconfirmed templates count as "upcoming" — were resolved and
+recorded as `docs/DECISIONS.md` D-8.
 
-### M4 — IOU & Reimbursements
+### M3 — Investments & Savings — **DONE**
 
-Group Expense flow, Receivables, Payables, Reimbursements (§7), the write-off mechanism, and the
-`amount_settled`/`status` recompute-on-write rule (§10.8). Exit test: a group expense with a
-custom split that doesn't sum to the total still posts correctly (the gap is the user's own
-share); editing a linked repayment transaction updates the IOU entry's settled amount without
-manual intervention; a written-off entry drops out of the Dashboard's net totals.
+Built: a dedicated `/investments` page (kept off the main Dashboard on purpose, per §6) with
+Investment Holdings (tick-box filters by vehicle type, combining into any subset) and Savings
+Accounts as two visually separate sections; add-instrument and log-contribution forms; SIPs as a
+true recurring-template variant (schema didn't originally support this — see `docs/DECISIONS.md`
+D-9 — now it does, confirm-before-posting and all).
+
+**Exit test — passed, live**, `investments.integration.test.ts`: an investment contribution
+debits the account but contributes exactly 0 to period spend; a savings-to-savings transfer is
+excluded from raw savings tracked while a real deposit counts in full; a SIP recurring template
+posts a real `investment` transaction with `instrument_id`/`quantity` correctly set (a bug in the
+first version of `confirmRecurringPosting` — it forgot these fields for the investment case,
+which would have failed a real database constraint — was caught here before ever running against
+real usage).
+
+### M4 — IOU & Reimbursements — **DONE**
+
+Built: a dedicated `/iou` page (Receivables / Payables / Reimbursements as tabs, per §7's "kept
+as a fully separate module"), the Group Expense flow (equal-split helper + free-form custom
+amounts, no sum-to-total validation per the PRD-review decision), Payable creation, recording a
+repayment/settlement against any entry, the write-off action, and flagging an existing expense as
+reimbursable. The Dashboard gained an IOU snapshot (net receivable/payable, written-off excluded,
+hidden entirely when both are zero).
+
+**Exit test — passed, live**, `iou.integration.test.ts` (6 tests): a custom split that sums to
+less than the total posts fine, the gap being the user's own share; a repayment reduces the group
+expense's effective spend in its own period, and *editing* that repayment's amount afterward
+updates the entry's settled amount with no manual step; a written-off Payable drops out of net
+totals and a later settlement against it reverses that; a Payable's creation touches neither
+balance nor spend while settling it counts as real spend; a reimbursement received reduces the
+original expense's effective spend and is never counted as fresh income; deleting a Group
+Expense that already has a repayment logged against it requires deleting the repayment first — a
+naive delete of just the anchor transaction was confirmed to fail with a real foreign-key
+violation (`docs/DECISIONS.md` D-10), which is exactly why `deleteGroupExpense` does it in that
+order rather than relying on the database to sort it out.
+
+Not built in this pass: the checkbox-at-logging-time flow for flagging a reimbursement (PRD §12
+says "while logging any Expense" — built instead as a follow-up action from a list of recent
+expenses, functionally equivalent but not the same UI moment); "saved friend groups" for
+participant name autocomplete is explicitly Phase 2 (§15.4) and wasn't attempted.
 
 ### M5 — Dashboard
 
@@ -88,17 +133,28 @@ quick-add, reconcile-now (§8, §10.10). Exit test: privacy mode masks every bal
 per-account reveal works, and a reconciliation with a >₹500 delta triggers the manual audit path
 rather than an automatic correcting entry.
 
-### M6 — Reports
+### M6 — Reports — **DONE**
 
-Category breakdown, subcategory drill-down, trend over time, savings rate (§9). Exit test: a past
-period's "effective spend" visibly shrinks after a refund is logged against an expense from that
-period, dated after the fact (§10.3).
+Built: a `/reports` page — category breakdown (sorted bar chart, click a bar to drill into
+subcategories), a weekly/monthly/all-time toggle (real URL params, not just client state), a
+12-month spend trend line, and savings rate for the selected period. Charts went through the
+`dataviz` skill: category bars use its validated 6-hue categorical order (shadcn's own default
+`--chart-1..5` tokens are a grayscale ramp — fine for a sequential scale, unusable for categorical
+identity, so they were replaced in `globals.css`), the trend line uses the single sequential blue
+since one series needs no legend.
 
-### M7 — Deploy
+**Exit test — passed, live**, `reports.integration.test.ts`: a January category total drops from
+2000 to 1500 after a refund dated in February is logged against the January expense — checked by
+re-running the same report query, not by asserting on a cached number.
 
-Vercel deployment, PWA/service worker for "add to home screen" (§14). Exit test: the app installs
-to a phone home screen and the burn-down renders correctly on a real device, not just the dev
-server.
+### M7 — Deploy — **blocked on Ammar, not started**
+
+Vercel deployment, PWA/service worker for "add to home screen" (§14). Needs a real GitHub repo
+(pushed), a real Supabase project (not local Docker), a real Google OAuth client, and a Vercel
+account connected to that repo — none of which Claude Code can create. See
+`docs/HANDOFF_USER.md`. Once those exist, this is mostly configuration (env vars in Vercel,
+`next-pwa`/Workbox setup) rather than new application code — everything M0-M6 built is
+platform-agnostic already.
 
 ## What's deliberately not here
 

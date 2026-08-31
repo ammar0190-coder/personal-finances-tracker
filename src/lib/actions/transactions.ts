@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { recomputeIouEntry } from "@/lib/actions/iou-shared";
 import type { Database } from "@/types/database";
 
 type TransactionType = Database["public"]["Enums"]["transaction_type"];
@@ -68,7 +69,16 @@ export async function editTransaction(transactionId: string, input: EditTransact
     })
     .eq("id", transactionId);
   if (error) throw error;
+
+  // PRD §10.8: editing an iou_repayment/iou_settlement recomputes the entry
+  // it settles — never left to drift out of sync with what actually posted.
+  const { data: txn } = await supabase.from("transactions").select("type, related_iou_entry_id").eq("id", transactionId).single();
+  if (txn?.related_iou_entry_id && (txn.type === "iou_repayment" || txn.type === "iou_settlement")) {
+    await recomputeIouEntry(supabase, txn.related_iou_entry_id);
+  }
+
   revalidatePath("/", "layout");
+  revalidatePath("/iou");
 }
 
 /**
@@ -80,10 +90,11 @@ export async function editTransaction(transactionId: string, input: EditTransact
 export async function deleteTransaction(transactionId: string) {
   const supabase = await createClient();
 
-  const [{ data: groupExpense }, { data: refundsOfThis }, { data: reimbursementsOfThis }] = await Promise.all([
+  const [{ data: groupExpense }, { data: refundsOfThis }, { data: reimbursementsOfThis }, { data: self }] = await Promise.all([
     supabase.from("group_expenses").select("id").eq("transaction_id", transactionId).maybeSingle(),
     supabase.from("transactions").select("id").eq("refunded_transaction_id", transactionId).limit(1),
     supabase.from("iou_entries").select("id").eq("reimbursed_transaction_id", transactionId).limit(1),
+    supabase.from("transactions").select("type, related_iou_entry_id").eq("id", transactionId).single(),
   ]);
 
   if (groupExpense) {
@@ -100,5 +111,13 @@ export async function deleteTransaction(transactionId: string) {
 
   const { error } = await supabase.from("transactions").delete().eq("id", transactionId);
   if (error) throw error;
+
+  // PRD §10.8: deleting an iou_repayment/iou_settlement recomputes the
+  // entry it settled, same as an edit — see editTransaction above.
+  if (self?.related_iou_entry_id && (self.type === "iou_repayment" || self.type === "iou_settlement")) {
+    await recomputeIouEntry(supabase, self.related_iou_entry_id);
+  }
+
   revalidatePath("/", "layout");
+  revalidatePath("/iou");
 }

@@ -328,36 +328,42 @@ export type Database = {
           account_id: string
           active: boolean
           amount: number
-          category_id: string
+          category_id: string | null
           custom_interval_days: number | null
           frequency: Database["public"]["Enums"]["recurring_frequency"]
           id: string
-          kind: Database["public"]["Enums"]["category_kind"]
+          instrument_id: string | null
+          kind: Database["public"]["Enums"]["recurring_kind"]
           next_due_date: string
+          quantity: number | null
           user_id: string
         }
         Insert: {
           account_id: string
           active?: boolean
           amount: number
-          category_id: string
+          category_id?: string | null
           custom_interval_days?: number | null
           frequency: Database["public"]["Enums"]["recurring_frequency"]
           id?: string
-          kind: Database["public"]["Enums"]["category_kind"]
+          instrument_id?: string | null
+          kind: Database["public"]["Enums"]["recurring_kind"]
           next_due_date: string
+          quantity?: number | null
           user_id: string
         }
         Update: {
           account_id?: string
           active?: boolean
           amount?: number
-          category_id?: string
+          category_id?: string | null
           custom_interval_days?: number | null
           frequency?: Database["public"]["Enums"]["recurring_frequency"]
           id?: string
-          kind?: Database["public"]["Enums"]["category_kind"]
+          instrument_id?: string | null
+          kind?: Database["public"]["Enums"]["recurring_kind"]
           next_due_date?: string
+          quantity?: number | null
           user_id?: string
         }
         Relationships: [
@@ -373,6 +379,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_templates_instrument_id_fkey"
+            columns: ["instrument_id"]
+            isOneToOne: false
+            referencedRelation: "instruments"
             referencedColumns: ["id"]
           },
           {
@@ -539,6 +552,7 @@ export type Database = {
       iou_direction: "receivable" | "payable" | "reimbursement"
       iou_status: "pending" | "partial" | "settled" | "written_off"
       recurring_frequency: "monthly" | "quarterly" | "annual" | "custom"
+      recurring_kind: "expense" | "income" | "investment"
       split_method: "equal" | "custom"
       transaction_type:
         | "expense"
@@ -684,6 +698,7 @@ export const Constants = {
       iou_direction: ["receivable", "payable", "reimbursement"],
       iou_status: ["pending", "partial", "settled", "written_off"],
       recurring_frequency: ["monthly", "quarterly", "annual", "custom"],
+      recurring_kind: ["expense", "income", "investment"],
       split_method: ["equal", "custom"],
       transaction_type: [
         "expense",

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createTransaction } from "@/lib/actions/transactions";
+import { createTransaction, type CreateTransactionInput } from "@/lib/actions/transactions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,32 +13,80 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CategorySelect } from "@/components/transactions/category-select";
 import type { Account } from "@/lib/data/accounts";
 import type { Category } from "@/lib/data/categories";
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
+type DraftLine = CreateTransactionInput & { key: string; label: string };
+type TxnType = "expense" | "income" | "transfer";
+
 export function AddTransactionForm({ accounts, categories }: { accounts: Account[]; categories: Category[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [type, setType] = useState<"expense" | "income">("expense");
+  const [type, setType] = useState<TxnType>("expense");
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
+  const [toAccountId, setToAccountId] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(TODAY);
   const [note, setNote] = useState("");
+  const [batch, setBatch] = useState<DraftLine[]>([]);
 
-  const relevantCategories = categories.filter((c) => c.kind === type && !c.parent_id);
+  const isTransfer = type === "transfer";
 
-  function handleSubmit(e: React.FormEvent) {
+  // Pure — safe to call during render (e.g. for `disabled`). No id
+  // generation here; see buildLine for that, called only from handlers.
+  function isValidLine(): boolean {
+    if (!accountId || !amount) return false;
+    if (isTransfer) return Boolean(toAccountId) && toAccountId !== accountId;
+    return Boolean(categoryId);
+  }
+
+  // Impure (generates a batch key) — only ever called from an event handler.
+  function buildLine(): DraftLine | null {
+    if (!isValidLine()) return null;
+    if (isTransfer) {
+      return {
+        key: `${Date.now()}-${Math.random()}`,
+        type: "transfer",
+        accountId,
+        toAccountId,
+        amount,
+        date,
+        note: note || undefined,
+        label: `Transfer to ${accounts.find((a) => a.id === toAccountId)?.name ?? "?"}`,
+      };
+    }
+    const category = categories.find((c) => c.id === categoryId);
+    return {
+      key: `${Date.now()}-${Math.random()}`,
+      type,
+      accountId,
+      categoryId,
+      amount,
+      date,
+      note: note || undefined,
+      label: category?.name ?? "?",
+    };
+  }
+
+  function resetLineFields() {
+    setAmount("");
+    setNote("");
+  }
+
+  function handleLogNow(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    const line = buildLine();
+    if (!line) return;
     startTransition(async () => {
       try {
-        await createTransaction({ type, accountId, categoryId, amount, date, note: note || undefined });
-        setAmount("");
-        setNote("");
+        await createTransaction(line);
+        resetLineFields();
         router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Couldn't log that.");
@@ -46,76 +94,156 @@ export function AddTransactionForm({ accounts, categories }: { accounts: Account
     });
   }
 
+  function handleAddToBatch() {
+    setError(null);
+    const line = buildLine();
+    if (!line) return;
+    setBatch((b) => [...b, line]);
+    resetLineFields();
+  }
+
+  function removeFromBatch(key: string) {
+    setBatch((b) => b.filter((l) => l.key !== key));
+  }
+
+  function handleSaveBatch() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        for (const line of batch) {
+          await createTransaction(line);
+        }
+        setBatch([]);
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Couldn't save the batch.");
+      }
+    });
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      {error && <p className="text-destructive text-sm">{error}</p>}
-      <div className="grid gap-2">
-        <Label>Type</Label>
-        <Select value={type} onValueChange={(v) => setType(v as "expense" | "income")}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="expense">Expense</SelectItem>
-            <SelectItem value="income">Income</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="grid gap-2">
-        <Label>Account</Label>
-        <Select value={accountId} onValueChange={(v) => setAccountId(v ?? "")}>
-          <SelectTrigger>
-            <SelectValue placeholder="Choose an account" />
-          </SelectTrigger>
-          <SelectContent>
-            {accounts.map((a) => (
-              <SelectItem key={a.id} value={a.id}>
-                {a.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="grid gap-2">
-        <Label>Category</Label>
-        <Select value={categoryId} onValueChange={(v) => setCategoryId(v ?? "")}>
-          <SelectTrigger>
-            <SelectValue placeholder="Choose a category" />
-          </SelectTrigger>
-          <SelectContent>
-            {relevantCategories.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
+    <div className="flex flex-col gap-4">
+      <form onSubmit={handleLogNow} className="flex flex-col gap-4">
+        {error && <p className="text-destructive text-sm">{error}</p>}
         <div className="grid gap-2">
-          <Label htmlFor="txn-amount">Amount</Label>
-          <Input
-            id="txn-amount"
-            type="number"
-            step="0.01"
-            min="0.01"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            required
-          />
+          <Label>Type</Label>
+          <Select value={type} onValueChange={(v) => setType((v ?? "expense") as TxnType)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="expense">Expense</SelectItem>
+              <SelectItem value="income">Income</SelectItem>
+              <SelectItem value="transfer">Transfer (e.g. funding your budget)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="txn-date">Date</Label>
-          <Input id="txn-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+          <Label>{isTransfer ? "From account" : "Account"}</Label>
+          <Select value={accountId} onValueChange={(v) => setAccountId(v ?? "")}>
+            <SelectTrigger>
+              <SelectValue placeholder="Choose an account" />
+            </SelectTrigger>
+            <SelectContent>
+              {accounts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="txn-note">Note (optional)</Label>
-        <Input id="txn-note" value={note} onChange={(e) => setNote(e.target.value)} />
-      </div>
-      <Button type="submit" disabled={isPending || !accountId || !categoryId || !amount}>
-        {isPending ? "Logging…" : `Log ${type}`}
-      </Button>
-    </form>
+        {isTransfer ? (
+          <div className="grid gap-2">
+            <Label>To account</Label>
+            <Select value={toAccountId} onValueChange={(v) => setToAccountId(v ?? "")}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose a destination account" />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts
+                  .filter((a) => a.id !== accountId)
+                  .map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <div className="grid gap-2">
+            <Label>Category</Label>
+            <CategorySelect
+              categories={categories}
+              kind={type === "income" ? "income" : "expense"}
+              value={categoryId}
+              onChange={setCategoryId}
+            />
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="txn-amount">Amount</Label>
+            <Input
+              id="txn-amount"
+              type="number"
+              step="0.01"
+              min="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="txn-date">Date</Label>
+            <Input id="txn-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="txn-note">Note (optional)</Label>
+          <Input id="txn-note" value={note} onChange={(e) => setNote(e.target.value)} />
+        </div>
+        <div className="flex gap-2">
+          <Button type="submit" disabled={isPending || !isValidLine()} className="flex-1">
+            {isPending ? "Logging…" : `Log ${type} now`}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!isValidLine()}
+            onClick={handleAddToBatch}
+          >
+            Add to end-of-day batch
+          </Button>
+        </div>
+      </form>
+
+      {batch.length > 0 && (
+        <div className="border-t pt-4">
+          <p className="mb-2 text-sm font-medium">
+            End-of-day batch — {batch.length} item{batch.length > 1 ? "s" : ""}
+          </p>
+          <ul className="mb-3 flex flex-col gap-1">
+            {batch.map((line) => (
+              <li key={line.key} className="flex items-center justify-between text-sm">
+                <span>
+                  {line.label} — ₹{line.amount}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeFromBatch(line.key)}
+                  className="text-muted-foreground hover:text-destructive text-xs"
+                >
+                  remove
+                </button>
+              </li>
+            ))}
+          </ul>
+          <Button type="button" onClick={handleSaveBatch} disabled={isPending}>
+            {isPending ? "Saving…" : `Save all ${batch.length}`}
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

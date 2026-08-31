@@ -35,36 +35,42 @@ personal-finances-tracker/
 ├── supabase/
 │   ├── config.toml
 │   └── migrations/
-│       └── 20260828120000_initial_schema.sql   # full PRD §11 schema + §13 RLS
+│       ├── 20260828120000_initial_schema.sql            # full PRD §11 schema + §13 RLS
+│       └── 20260829030000_recurring_investment_support.sql  # SIPs need instrument_id, D-9
 ├── src/
 │   ├── proxy.ts                      # Next 16's renamed middleware — session refresh + auth gate
 │   ├── app/
 │   │   ├── layout.tsx
 │   │   ├── page.tsx                  # Dashboard (and onboarding, inline, when accounts = 0)
-│   │   └── auth/
-│   │       ├── login/page.tsx
-│   │       ├── callback/route.ts     # OAuth code exchange
-│   │       └── error/page.tsx
+│   │   ├── auth/
+│   │   │   ├── login/page.tsx
+│   │   │   ├── callback/route.ts     # OAuth code exchange
+│   │   │   └── error/page.tsx
+│   │   ├── investments/page.tsx      # §6 — deliberately its own page, off the main Dashboard
+│   │   ├── iou/page.tsx              # §7 — Receivables/Payables/Reimbursements tabs
+│   │   └── reports/page.tsx          # §9
 │   ├── components/
-│   │   ├── ui/                       # shadcn/ui primitives
+│   │   ├── ui/                       # shadcn/ui primitives (Base UI underneath, not Radix)
 │   │   ├── auth/                     # login-form, logout-button
 │   │   ├── onboarding/               # add-account-form, seed-categories-button
-│   │   ├── transactions/             # add-transaction-form
-│   │   └── dashboard/                # masked-balance
+│   │   ├── transactions/             # add/edit forms, category-select (grouped, §4), actions
+│   │   ├── accounts/, categories/    # deactivate buttons (soft-delete, §3/§4)
+│   │   ├── recurring/                # add form, due-now confirm card, list section
+│   │   ├── investments/              # add-instrument, log-contribution, holdings-list (filters)
+│   │   ├── iou/                      # group-expense, payable, entry row (repay/settle/write-off)
+│   │   ├── reports/                  # category-breakdown-chart, trend-chart (Recharts)
+│   │   └── dashboard/                # masked-balance, burn-down, iou-snapshot, reconcile-dialog
 │   ├── lib/
 │   │   ├── ledger/                   # PURE money-math — no Supabase import anywhere in here
-│   │   │   ├── types.ts
-│   │   │   ├── balance.ts            # §10.1
-│   │   │   ├── spend.ts              # §10.3
-│   │   │   ├── available.ts          # §10.4
-│   │   │   ├── savings.ts            # §10.5
-│   │   │   ├── iou.ts                # §10.8
-│   │   │   ├── recurring.ts          # §10.11 next_due_date
-│   │   │   ├── money.ts              # the numeric<->JS float boundary, D-7
+│   │   │   ├── types.ts, balance.ts (§10.1), spend.ts (§10.3), available.ts (§10.4)
+│   │   │   ├── savings.ts (§10.5), iou.ts (§10.8), recurring.ts (§10.11), cycle.ts (§10.11)
+│   │   │   ├── category-spend.ts (§9), money.ts (the numeric<->JS float boundary, D-7)
 │   │   │   └── __tests__/            # 50 unit tests, no DB needed
-│   │   ├── supabase/                 # client.ts, server.ts, proxy.ts + rls.integration.test.ts
+│   │   ├── supabase/                 # client.ts, server.ts, proxy.ts
+│   │   ├── charts/colors.ts          # dataviz-skill-validated categorical/sequential colors
 │   │   ├── data/                     # read-only Supabase queries, mapped into ledger/ shapes
-│   │   └── actions/                  # "use server" mutations (create/edit/delete)
+│   │   │   └── __tests__/            # 7 live integration test files, real Postgres required
+│   │   └── actions/                  # "use server" mutations (create/edit/delete/confirm/etc.)
 │   └── types/
 │       └── database.ts               # generated via `supabase gen types typescript --local`
 ├── package.json
@@ -72,10 +78,8 @@ personal-finances-tracker/
 └── vitest.config.mts
 ```
 
-Not yet built: `src/lib/data`/`actions` cover accounts, categories, and expense/income
-transactions only. Recurring templates, investments/savings, IOU/reimbursements, edit/delete UI,
-Reports, and privacy-mode/PIN settings are all still PRD-specified but not implemented — see
-`docs/MASTER_PLAN.md` for exactly what's done vs. open.
+**All of PRD §2-§13 is built** (M0-M6, `docs/MASTER_PLAN.md`). Only M7 (Deploy) remains, blocked
+on Ammar's own setup (`docs/HANDOFF_USER.md`).
 
 ## What each doc is for
 

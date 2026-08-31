@@ -372,8 +372,10 @@ All primary keys are UUIDs. All monetary fields are stored as decimals (never fl
 |---|---|---|
 | id | UUID (PK) | |
 | user_id | UUID (FK → Users) | |
-| kind | enum: `expense` \| `income` | |
-| category_id | UUID (FK → Categories) | |
+| kind | enum: `expense` \| `income` \| `investment` | `investment` added for SIPs (§6) — see `docs/DECISIONS.md` D-9. A distinct enum from Categories' own `expense`/`income` kind, since a Category is never investment-kind. |
+| category_id | UUID (FK → Categories), nullable | Required for `kind = expense \| income`, null for `investment` (D-9) |
+| instrument_id | UUID (FK → Instruments), nullable | Required for `kind = investment` (a SIP), null otherwise (D-9) |
+| quantity | decimal, nullable | Set only alongside `instrument_id`, mirroring `TRANSACTIONS.quantity` (D-9) |
 | account_id | UUID (FK → Accounts) | |
 | amount | decimal | Editable at each confirm-before-posting step |
 | frequency | enum: `monthly` \| `quarterly` \| `annual` \| `custom` | Not hardcoded to monthly |

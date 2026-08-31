@@ -155,3 +155,89 @@ problem).
 **Would change our mind.** If amounts ever needed more than 14 significant digits (numeric(14,2)'s
 ceiling) or sub-cent precision, the round-trip guarantee this depends on could stop holding and
 the `bigint`-cents alternative would become the safer default.
+
+## D-8: Budget-cycle boundaries and earmarking scope, operationalized
+
+**Date** 2026-08-29
+**Milestone** M2 (`src/lib/ledger/cycle.ts`, `src/lib/data/dashboard.ts`)
+**Chosen because** §10.11 says "budget cycles run from one spend-account transfer to the next" but
+doesn't say what happens with more than two transfers, or exactly which unconfirmed recurring
+items count as "upcoming" for a given cycle. Two calls made to turn this into running code:
+
+1. **Every transfer into the spend account starts a new cycle**, and the current cycle's start is
+   the MOST RECENT such transfer's date. A second top-up transfer mid-cycle is treated as starting
+   a fresh cycle from that date, not adding to the existing one's ceiling. `findCurrentCycleStart`
+   just takes the max date among matching transfers — it does not attempt to merge or carry over
+   an unspent balance from the previous cycle.
+2. **Earmarking (§5) counts a recurring template as "upcoming" once it's actually due**
+   (`next_due_date <= today`), not everything ever scheduled regardless of date. A bill due three
+   weeks from now doesn't yet reduce today's available-to-spend — only a bill already sitting
+   unconfirmed does. This also isn't bounded by the cycle window on the near side: a
+   still-unconfirmed bill from a prior cycle keeps earmarking until confirmed or deactivated.
+
+**Rejected alternatives.** Summing every transfer into the spend account since the dawn of time as
+the ceiling (rejected: contradicts §3's framing of a transfer *as* the ceiling, singular, and
+would make the ceiling only ever grow); earmarking every future-dated active template regardless
+of due date (rejected: would make available-to-spend look artificially low for money that isn't
+actually at stake yet).
+
+**Would change our mind.** If real usage shows a mid-cycle top-up is meant to *add* to the
+existing ceiling rather than reset it (e.g. "I got a bonus, adding it to this month's budget"),
+rule 1 needs revisiting — that's a materially different formula, not a tweak.
+
+## D-9: `recurring_templates` extended to support SIPs
+
+**Date** 2026-08-29
+**Milestone** M3 (`supabase/migrations/20260829030000_recurring_investment_support.sql`)
+**Chosen because** PRD §6 says SIPs are "logged manually... using the exact same recurring
+confirm-before-posting mechanism as Recurring Fixed Expenses," but §11's original
+`RECURRING_TEMPLATES` table only had `kind: expense | income`, a required `category_id`, and no
+`instrument_id` at all — there was no way to point a template at an Instrument instead of a
+Category. Extended: `kind` becomes its own three-value enum (`recurring_kind`, adding
+`investment`) rather than reusing `category_kind`, since a Category itself is never
+investment-kind (§3.1 only ever tags a category expense or income); `category_id` became
+nullable; added `instrument_id` and `quantity`, mirroring `TRANSACTIONS`' own investment fields;
+added CHECK constraints requiring exactly one of category/instrument depending on `kind`, the
+same type-conditional-field pattern already used everywhere else in the schema.
+
+Caught before it shipped: `confirmRecurringPosting`'s original version only copied
+`category_id` onto the posted transaction, which would have violated `TRANSACTIONS`'
+`instrument_only_for_investment` constraint the first time a real SIP template posted — fixed to
+also copy `instrument_id`/`quantity`, verified live in `investments.integration.test.ts`.
+
+**Rejected alternatives.** Making SIPs their own separate table/mechanism instead of extending
+`RECURRING_TEMPLATES` (rejected: the PRD is explicit that it's "the exact same mechanism," and a
+parallel structure would duplicate confirm-before-posting logic for no benefit). Reusing
+`category_kind` and adding `investment` to it (rejected: would let the UI construct a
+category with kind `investment`, which nothing in §3/§4 supports and would need its own
+validation to prevent).
+
+**Would change our mind.** Nothing currently — this closes a real gap the same way D-4 did rather
+than making a debatable judgment call.
+
+## D-10: `deleteGroupExpense` must delete repayment transactions BEFORE the anchor expense
+
+**Date** 2026-08-29
+**Milestone** M4 (`src/lib/actions/group-expenses.ts`)
+**Chosen because** confirmed live, not assumed: a naive `delete transactions where id = <anchor>`
+on a Group Expense that already has repayments logged against it FAILS with a real foreign-key
+violation. The chain is `transactions(repayment).related_iou_entry_id` → `iou_entries` (ON DELETE
+RESTRICT, deliberately — see the migration's comment) → `iou_entries.group_expense_id` →
+`group_expenses` (ON DELETE CASCADE) → `group_expenses.transaction_id` → the anchor transaction
+(ON DELETE CASCADE). Deleting the anchor tries to cascade through both CASCADE links down to
+`iou_entries`, but the RESTRICT from the still-existing repayment transaction blocks that last
+step — so the whole delete fails, loudly, rather than silently orphaning the repayment or
+leaving a partial cascade. `deleteGroupExpense` therefore explicitly deletes every transaction
+with `related_iou_entry_id` pointing at one of the group's entries FIRST, then deletes the
+anchor (which now cascades cleanly).
+
+**Rejected alternatives.** Making `related_iou_entry_id` cascade too (rejected: would mean
+editing/deleting an unrelated IOU entry could silently vaporize real transaction history — the
+whole reason it's RESTRICT elsewhere in the schema is to make exactly that kind of accidental
+loss impossible); catching the FK error and retrying with repayments deleted (rejected: doing it
+in the right order from the start is simpler and doesn't rely on parsing a Postgres error
+message to decide what to do next).
+
+**Would change our mind.** Nothing — this is a correctness fact about the schema's own
+constraint graph, verified directly (`iou.integration.test.ts` asserts the naive delete fails
+and the ordered delete succeeds), not a judgment call with real alternatives.

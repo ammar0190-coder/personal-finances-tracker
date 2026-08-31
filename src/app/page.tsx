@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { listAccountsWithBalances } from "@/lib/data/balances";
 import { listCategories } from "@/lib/data/categories";
@@ -5,9 +6,13 @@ import { listTransactions } from "@/lib/data/transactions";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { AddAccountForm } from "@/components/onboarding/add-account-form";
 import { AddTransactionForm } from "@/components/transactions/add-transaction-form";
-import { MaskedBalance } from "@/components/dashboard/masked-balance";
+import { TransactionActions } from "@/components/transactions/transaction-actions";
+import { AccountRow } from "@/components/dashboard/account-row";
+import { DeactivateCategoryButton } from "@/components/categories/deactivate-category-button";
+import { RecurringSection } from "@/components/recurring/recurring-section";
+import { BurnDown } from "@/components/dashboard/burn-down";
+import { IouSnapshot } from "@/components/dashboard/iou-snapshot";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { SeedCategoriesButton } from "@/components/onboarding/seed-categories-button";
 
 export default async function DashboardPage() {
@@ -33,7 +38,18 @@ export default async function DashboardPage() {
           <h1 className="text-xl font-semibold">Personal Finance Tracker</h1>
           <p className="text-muted-foreground text-sm">{profile?.name ?? user?.email}</p>
         </div>
-        <LogoutButton />
+        <div className="flex items-center gap-4">
+          <Link href="/investments" className="text-muted-foreground text-sm underline">
+            Investments →
+          </Link>
+          <Link href="/iou" className="text-muted-foreground text-sm underline">
+            IOU →
+          </Link>
+          <Link href="/reports" className="text-muted-foreground text-sm underline">
+            Reports →
+          </Link>
+          <LogoutButton />
+        </div>
       </header>
 
       {accounts.length === 0 ? (
@@ -63,23 +79,22 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               {accounts.map((a) => (
-                <div key={a.id} className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{a.name}</p>
-                    <p className="text-muted-foreground text-xs">
-                      {a.role || a.institution || a.account_type}
-                      {a.account_type === "credit_card" && (
-                        <Badge variant="secondary" className="ml-2">
-                          owed
-                        </Badge>
-                      )}
-                    </p>
-                  </div>
-                  <MaskedBalance value={a.balance} defaultMasked={privacyMode} />
-                </div>
+                <AccountRow key={a.id} account={a} privacyMode={privacyMode} />
               ))}
+              <details className="mt-2">
+                <summary className="text-muted-foreground cursor-pointer text-xs">Add another account</summary>
+                <div className="mt-3">
+                  <AddAccountForm />
+                </div>
+              </details>
             </CardContent>
           </Card>
+
+          <BurnDown />
+
+          <IouSnapshot />
+
+          <RecurringSection accounts={accounts} categories={categories} />
 
           <Card>
             <CardHeader>
@@ -90,33 +105,62 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <RecentTransactions accountsById={Object.fromEntries(accounts.map((a) => [a.id, a.name]))} />
+          <Card>
+            <CardHeader>
+              <CardTitle>Categories</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                {categories
+                  .filter((c) => !c.parent_id)
+                  .map((c) => (
+                    <div key={c.id} className="flex items-center justify-between">
+                      <span>{c.name}</span>
+                      <DeactivateCategoryButton categoryId={c.id} />
+                    </div>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <RecentTransactions accounts={accounts} categories={categories} />
         </>
       )}
     </div>
   );
 }
 
-async function RecentTransactions({ accountsById }: { accountsById: Record<string, string> }) {
-  const transactions = await listTransactions({ limit: 10 });
+async function RecentTransactions({
+  accounts,
+  categories,
+}: {
+  accounts: Awaited<ReturnType<typeof listAccountsWithBalances>>;
+  categories: Awaited<ReturnType<typeof listCategories>>;
+}) {
+  const transactions = await listTransactions({ limit: 15 });
+  const accountsById = Object.fromEntries(accounts.map((a) => [a.id, a.name]));
+  const categoriesById = Object.fromEntries(categories.map((c) => [c.id, c.name]));
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Recent transactions</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-2">
+      <CardContent className="flex flex-col gap-3">
         {transactions.length === 0 && <p className="text-muted-foreground text-sm">Nothing logged yet.</p>}
         {transactions.map((t) => (
           <div key={t.id} className="flex items-center justify-between text-sm">
             <div>
               <span className="font-medium">{accountsById[t.account_id] ?? "?"}</span>
-              <span className="text-muted-foreground ml-2">{t.type}</span>
+              <span className="text-muted-foreground ml-2">
+                {t.category_id ? categoriesById[t.category_id] : t.type}
+              </span>
               {t.note && <span className="text-muted-foreground ml-2">— {t.note}</span>}
             </div>
             <div className="flex items-center gap-3">
               <span className="text-muted-foreground text-xs">{t.date}</span>
               <span className="font-mono tabular-nums">₹{t.amount}</span>
+              <TransactionActions transaction={t} accounts={accounts} categories={categories} />
             </div>
           </div>
         ))}
