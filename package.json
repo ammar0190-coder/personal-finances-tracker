@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "RUN_RLS_TESTS=1 vitest run src/lib/supabase/__tests__/rls.integration.test.ts src/lib/data/__tests__/end-to-end.integration.test.ts src/lib/data/__tests__/edit-delete.integration.test.ts src/lib/data/__tests__/recurring.integration.test.ts src/lib/data/__tests__/investments.integration.test.ts src/lib/data/__tests__/iou.integration.test.ts src/lib/data/__tests__/reconciliation.integration.test.ts src/lib/data/__tests__/reports.integration.test.ts"
+    "test:integration": "RUN_RLS_TESTS=1 vitest run src/lib/data/__tests__/helpers/insert.integration.test.ts src/lib/supabase/__tests__/rls.integration.test.ts src/lib/data/__tests__/end-to-end.integration.test.ts src/lib/data/__tests__/edit-delete.integration.test.ts src/lib/data/__tests__/recurring.integration.test.ts src/lib/data/__tests__/investments.integration.test.ts src/lib/data/__tests__/iou.integration.test.ts src/lib/data/__tests__/reconciliation.integration.test.ts src/lib/data/__tests__/reports.integration.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

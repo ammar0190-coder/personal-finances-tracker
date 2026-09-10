@@ -3,15 +3,25 @@
 Checked directly by `start-session` at the top of every session — update this when an item
 resolves or a new one surfaces, not on a schedule.
 
+**Status as of 2026-09-05:** the four original setup items are all done. What replaced them is
+one real gap — *the hosted Supabase project has never had the schema pushed to it.*
+
 | # | What | Gates | Cost |
 |---|---|---|---|
-| 1 | **Create a real Supabase project** (free tier is fine) and put its URL + publishable key + secret key in `.env.local`, replacing the local-dev values `.env.example` documents the shape of | Anything running against real, persistent data instead of local Docker Postgres | 5 min |
-| 2 | **Create a Google OAuth client** (Google Cloud Console) and wire it into Supabase Auth's Google provider | The actual Google sign-in flow — everything downstream of auth has been verified against local Supabase's own auth, but never against real Google OAuth | 15 min |
-| 3 | **Create a GitHub repo and push** (Claude Code doesn't do this — see `CLAUDE.md` Workflow). Everything through M0 and part of M1 is staged and ready for a first commit. | Having any remote backup of this work at all | 5 min |
-| 4 | **A Vercel account**, connected to the GitHub repo once it exists | M7 (deploy), not sooner | 10 min |
-| 5 | **Local dev needs Docker running** for `supabase start` (Postgres, Auth, etc. in containers) — already confirmed working on this machine. Run `npx supabase start` at the top of a session that needs live data; `npx supabase stop` at the end. | Any session that runs the app or the integration/RLS tests (`npm run test:rls`) | seconds, once Docker's up |
+| 1 | **`npx supabase login`** — the CLI has no access token (`supabase projects list` fails with `LegacyPlatformAuthRequiredError`). Opens a browser; only you can complete it. | Every remaining step below | 1 min |
+| 2 | **`npx supabase link --project-ref <ref>`** — the repo is *not* linked (`supabase/.temp/project-ref` doesn't exist). Needs the project ref and the database password. | Pushing the schema | 2 min |
+| 3 | **Decide: push the schema to the real project.** Both migrations in `supabase/migrations/` have only ever been applied to local Docker Postgres. Until `supabase db push` runs against the hosted project, its database is empty — the deployed app will fail on every query. Claude asks before doing this (`CLAUDE.md`: schema changes stop and ask). | Anything hosted working at all | 2 min |
+| 4 | **Google OAuth redirect URLs** — once a Vercel domain exists, add it in *both* Google Cloud Console (Authorized redirect URI) and Supabase Auth (Site URL + Redirect URLs). The code side is already correct: the callback honours `x-forwarded-host`, and `redirectTo` is built from `window.location.origin`, so no code change is needed for a new domain. | Google sign-in working on the deployed site | 5 min |
+| 5 | **Local dev needs Docker running** for `supabase start`. Run `npx supabase start` at the top of a session that needs live data; `npx supabase stop` at the end. | Any session running the app or the integration tests | seconds |
+| 6 | *(Optional, unblocks real browser tests)* **`sudo npx playwright install --with-deps chromium`.** Claude can't do this — no passwordless sudo, and `libasound2` is missing, which is exactly what killed the previous attempt. One command from you makes real UI tests possible. | Any test that clicks the actual UI | 3 min |
 
-~~Project/app name~~ — resolved: renamed to `personal-finances-tracker` in this session.
+## Resolved
+
+- ~~Project/app name~~ — renamed to `personal-finances-tracker`.
+- ~~Create a real Supabase project~~ — done. (The *project* exists; its *schema* does not — see item 3.)
+- ~~Create a Google OAuth client~~ — done. (Redirect URLs still need the deployed domain — item 4.)
+- ~~Create a GitHub repo and push~~ — done: `git@github.com:ammar0190-coder/personal-finances-tracker.git`, `main` tracking `origin/main`.
+- ~~A Vercel account~~ — done. Not yet connected to the repo.
 
 Not on this list: anything about the schema, the money-math rules, or IOU/reimbursement
 behaviour — all of that is already pinned down in `docs/PRD.md` and doesn't need a decision from

@@ -12,6 +12,7 @@ import { computeNextDueDate } from "@/lib/ledger/recurring";
 import { toMoneyString } from "@/lib/ledger/money";
 import type { LedgerTransaction } from "@/lib/ledger/types";
 import type { Database } from "@/types/database";
+import { insertOne } from "./helpers/insert";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const PUBLISHABLE_KEY =
@@ -39,28 +40,38 @@ describe.runIf(process.env.RUN_RLS_TESTS === "1")("Investments & Savings (PRD §
     userId = created.user!.id;
 
     client = createAdminClient<Database>(URL, PUBLISHABLE_KEY);
-    await client.auth.signInWithPassword({ email, password: "test-password-123" });
+    const { error: signInError } = await client.auth.signInWithPassword({ email, password: "test-password-123" });
+    if (signInError) throw signInError;
 
-    const { data: bank } = await client
-      .from("accounts")
-      .insert({ user_id: userId, name: "Bank", account_type: "bank" })
-      .select()
-      .single();
-    bankId = bank!.id;
+    const bank = await insertOne(
+      client
+        .from("accounts")
+        .insert({ user_id: userId, name: "Bank", account_type: "bank" })
+        .select()
+        .single(),
+      "accounts/Bank",
+    );
+    bankId = bank.id;
 
-    const { data: savings } = await client
-      .from("accounts")
-      .insert({ user_id: userId, name: "Slice", account_type: "bank", is_savings: true })
-      .select()
-      .single();
-    savingsId = savings!.id;
+    const savings = await insertOne(
+      client
+        .from("accounts")
+        .insert({ user_id: userId, name: "Slice", account_type: "bank", is_savings: true })
+        .select()
+        .single(),
+      "accounts/Slice",
+    );
+    savingsId = savings.id;
 
-    const { data: savings2 } = await client
-      .from("accounts")
-      .insert({ user_id: userId, name: "Other Savings", account_type: "bank", is_savings: true })
-      .select()
-      .single();
-    savings2Id = savings2!.id;
+    const savings2 = await insertOne(
+      client
+        .from("accounts")
+        .insert({ user_id: userId, name: "Other Savings", account_type: "bank", is_savings: true })
+        .select()
+        .single(),
+      "accounts/Other Savings",
+    );
+    savings2Id = savings2.id;
   });
 
   afterAll(async () => {

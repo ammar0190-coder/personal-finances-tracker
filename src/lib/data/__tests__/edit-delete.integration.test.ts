@@ -17,6 +17,7 @@ import { computeAccountBalance } from "@/lib/ledger/balance";
 import { toMoneyString } from "@/lib/ledger/money";
 import type { LedgerAccount, LedgerTransaction } from "@/lib/ledger/types";
 import type { Database } from "@/types/database";
+import { insertOne } from "./helpers/insert";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const PUBLISHABLE_KEY =
@@ -65,21 +66,28 @@ describe.runIf(process.env.RUN_RLS_TESTS === "1")("Edit/Delete transaction (PRD 
     userId = created.user!.id;
 
     client = createAdminClient<Database>(URL, PUBLISHABLE_KEY);
-    await client.auth.signInWithPassword({ email, password: "test-password-123" });
+    const { error: signInError } = await client.auth.signInWithPassword({ email, password: "test-password-123" });
+    if (signInError) throw signInError;
 
-    const { data: bank } = await client
-      .from("accounts")
-      .insert({ user_id: userId, name: "Bank", account_type: "bank" })
-      .select()
-      .single();
-    bankId = bank!.id;
+    const bank = await insertOne(
+      client
+        .from("accounts")
+        .insert({ user_id: userId, name: "Bank", account_type: "bank" })
+        .select()
+        .single(),
+      "accounts/Bank",
+    );
+    bankId = bank.id;
 
-    const { data: category } = await client
-      .from("categories")
-      .insert({ user_id: userId, name: "Food", kind: "expense" })
-      .select()
-      .single();
-    categoryId = category!.id;
+    const category = await insertOne(
+      client
+        .from("categories")
+        .insert({ user_id: userId, name: "Food", kind: "expense" })
+        .select()
+        .single(),
+      "categories/Food",
+    );
+    categoryId = category.id;
   });
 
   afterAll(async () => {
@@ -87,89 +95,110 @@ describe.runIf(process.env.RUN_RLS_TESTS === "1")("Edit/Delete transaction (PRD 
   });
 
   it("editing a transaction's amount changes the balance with no stale state", async () => {
-    const { data: txn } = await client
-      .from("transactions")
-      .insert({ user_id: userId, account_id: bankId, category_id: categoryId, type: "expense", amount: 100, date: "2026-01-01" })
-      .select()
-      .single();
+    const txn = await insertOne(
+      client
+        .from("transactions")
+        .insert({ user_id: userId, account_id: bankId, category_id: categoryId, type: "expense", amount: 100, date: "2026-01-01" })
+        .select()
+        .single(),
+      "transactions",
+    );
 
     expect((await balanceOf(client, bankId)).toString()).toBe("-100");
 
-    await client.from("transactions").update({ amount: 250 }).eq("id", txn!.id);
+    await client.from("transactions").update({ amount: 250 }).eq("id", txn.id);
 
     expect((await balanceOf(client, bankId)).toString()).toBe("-250");
 
-    await client.from("transactions").delete().eq("id", txn!.id);
+    await client.from("transactions").delete().eq("id", txn.id);
   });
 
   it("deleting a transaction removes its effect on the balance entirely", async () => {
-    const { data: keep } = await client
-      .from("transactions")
-      .insert({ user_id: userId, account_id: bankId, category_id: categoryId, type: "income", amount: 1000, date: "2026-01-01" })
-      .select()
-      .single();
-    const { data: toDelete } = await client
-      .from("transactions")
-      .insert({ user_id: userId, account_id: bankId, category_id: categoryId, type: "expense", amount: 300, date: "2026-01-02" })
-      .select()
-      .single();
+    const keep = await insertOne(
+      client
+        .from("transactions")
+        .insert({ user_id: userId, account_id: bankId, category_id: categoryId, type: "income", amount: 1000, date: "2026-01-01" })
+        .select()
+        .single(),
+      "transactions",
+    );
+    const toDelete = await insertOne(
+      client
+        .from("transactions")
+        .insert({ user_id: userId, account_id: bankId, category_id: categoryId, type: "expense", amount: 300, date: "2026-01-02" })
+        .select()
+        .single(),
+      "transactions",
+    );
 
     expect((await balanceOf(client, bankId)).toString()).toBe("700");
 
-    await client.from("transactions").delete().eq("id", toDelete!.id);
+    await client.from("transactions").delete().eq("id", toDelete.id);
 
     expect((await balanceOf(client, bankId)).toString()).toBe("1000");
 
-    await client.from("transactions").delete().eq("id", keep!.id);
+    await client.from("transactions").delete().eq("id", keep.id);
   });
 
   it("the database itself blocks deleting a transaction a refund is linked to (FK backstop for §12's rule)", async () => {
-    const { data: original } = await client
-      .from("transactions")
-      .insert({ user_id: userId, account_id: bankId, category_id: categoryId, type: "expense", amount: 500, date: "2026-01-01" })
-      .select()
-      .single();
+    const original = await insertOne(
+      client
+        .from("transactions")
+        .insert({ user_id: userId, account_id: bankId, category_id: categoryId, type: "expense", amount: 500, date: "2026-01-01" })
+        .select()
+        .single(),
+      "transactions",
+    );
     await client
       .from("transactions")
-      .insert({ user_id: userId, account_id: bankId, type: "refund", amount: 100, date: "2026-01-05", refunded_transaction_id: original!.id });
+      .insert({ user_id: userId, account_id: bankId, type: "refund", amount: 100, date: "2026-01-05", refunded_transaction_id: original.id });
 
-    const { error } = await client.from("transactions").delete().eq("id", original!.id);
+    const { error } = await client.from("transactions").delete().eq("id", original.id);
     expect(error).not.toBeNull();
     expect(error!.message.toLowerCase()).toMatch(/violat|foreign key|constraint/);
 
     // Cleanup respects the same constraint — delete the refund first.
-    await client.from("transactions").delete().eq("refunded_transaction_id", original!.id);
-    await client.from("transactions").delete().eq("id", original!.id);
+    await client.from("transactions").delete().eq("refunded_transaction_id", original.id);
+    await client.from("transactions").delete().eq("id", original.id);
   });
 
   it("deleting a Group Expense's anchor transaction cascades to its Group_Expenses row and IOU entries together", async () => {
-    const { data: expenseTxn } = await client
-      .from("transactions")
-      .insert({ user_id: userId, account_id: bankId, category_id: categoryId, type: "expense", amount: 3000, date: "2026-01-01" })
-      .select()
-      .single();
-    const { data: groupExpense } = await client
-      .from("group_expenses")
-      .insert({ user_id: userId, transaction_id: expenseTxn!.id, total_amount: 3000, split_method: "equal" })
-      .select()
-      .single();
-    const { data: iouEntry } = await client
-      .from("iou_entries")
-      .insert({
+    const expenseTxn = await insertOne(
+      client
+        .from("transactions")
+        .insert({ user_id: userId, account_id: bankId, category_id: categoryId, type: "expense", amount: 3000, date: "2026-01-01" })
+        .select()
+        .single(),
+      "transactions",
+    );
+    const groupExpense = await insertOne(
+      client
+        .from("group_expenses")
+        .insert({ user_id: userId, transaction_id: expenseTxn.id, total_amount: 3000, split_method: "equal" })
+        .select()
+        .single(),
+      "group_expenses",
+    );
+    const iouEntry = await insertOne(
+      client
+        .from("iou_entries")
+        .insert({
         user_id: userId,
         direction: "receivable",
-        group_expense_id: groupExpense!.id,
+        group_expense_id: groupExpense.id,
         person_name: "Friend",
         amount_owed: 1000,
         date_incurred: "2026-01-01",
-      })
-      .select()
-      .single();
+        })
+        .select()
+        .single(),
+      "iou_entries",
+    );
 
-    await client.from("transactions").delete().eq("id", expenseTxn!.id);
+    await client.from("transactions").delete().eq("id", expenseTxn.id);
 
-    const { data: groupExpenseAfter } = await client.from("group_expenses").select("id").eq("id", groupExpense!.id);
-    const { data: iouEntryAfter } = await client.from("iou_entries").select("id").eq("id", iouEntry!.id);
+    const { data: groupExpenseAfter } = await client.from("group_expenses").select("id").eq("id", groupExpense.id);
+    const { data: iouEntryAfter } = await client.from("iou_entries").select("id").eq("id", iouEntry.id);
     expect(groupExpenseAfter).toEqual([]);
     expect(iouEntryAfter).toEqual([]);
   });

@@ -10,6 +10,7 @@ import { computeAccountBalance } from "@/lib/ledger/balance";
 import { toMoneyString } from "@/lib/ledger/money";
 import type { LedgerAccount, LedgerTransaction } from "@/lib/ledger/types";
 import type { Database } from "@/types/database";
+import { insertOne } from "./helpers/insert";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const PUBLISHABLE_KEY =
@@ -41,10 +42,14 @@ describe.runIf(process.env.RUN_RLS_TESTS === "1")("Reconciliation (PRD §3/§10.
     userId = created.user!.id;
 
     client = createAdminClient<Database>(URL, PUBLISHABLE_KEY);
-    await client.auth.signInWithPassword({ email, password: "test-password-123" });
+    const { error: signInError } = await client.auth.signInWithPassword({ email, password: "test-password-123" });
+    if (signInError) throw signInError;
 
-    const { data: bank } = await client.from("accounts").insert({ user_id: userId, name: "Bank", account_type: "bank" }).select().single();
-    bankId = bank!.id;
+    const bank = await insertOne(
+      client.from("accounts").insert({ user_id: userId, name: "Bank", account_type: "bank" }).select().single(),
+      "accounts/Bank",
+    );
+    bankId = bank.id;
     await client.from("categories").insert([
       { user_id: userId, name: "Misc income", kind: "income" },
       { user_id: userId, name: "Miscellaneous", kind: "expense" },
@@ -65,15 +70,18 @@ describe.runIf(process.env.RUN_RLS_TESTS === "1")("Reconciliation (PRD §3/§10.
     expect(delta.abs().lessThan(AUDIT_THRESHOLD)).toBe(true);
 
     const { data: category } = await client.from("categories").select("id").eq("name", "Misc income").single();
-    const { data: correctingTxn } = await client
-      .from("transactions")
-      .insert({ user_id: userId, type: "income", account_id: bankId, category_id: category!.id, amount: delta.abs().toString() as unknown as number, date: "2026-01-15", note: "Reconciliation correction" })
-      .select()
-      .single();
+    const correctingTxn = await insertOne(
+      client
+        .from("transactions")
+        .insert({ user_id: userId, type: "income", account_id: bankId, category_id: category!.id, amount: delta.abs().toString() as unknown as number, date: "2026-01-15", note: "Reconciliation correction" })
+        .select()
+        .single(),
+      "transactions",
+    );
     await client.from("balance_snapshots").insert({
       user_id: userId, account_id: bankId, date: "2026-01-15",
       actual_balance: actual as unknown as number, tracked_balance_at_time: tracked.toString() as unknown as number,
-      correcting_transaction_id: correctingTxn!.id,
+      correcting_transaction_id: correctingTxn.id,
     });
 
     const newTracked = await trackedBalanceOf(client, bankId);
@@ -88,12 +96,15 @@ describe.runIf(process.env.RUN_RLS_TESTS === "1")("Reconciliation (PRD §3/§10.
 
     // The real action inserts a snapshot with correcting_transaction_id = null
     // in this branch — no transaction is created at all.
-    const { data: snapshot } = await client
-      .from("balance_snapshots")
-      .insert({ user_id: userId, account_id: bankId, date: "2026-01-20", actual_balance: actual as unknown as number, tracked_balance_at_time: tracked.toString() as unknown as number, correcting_transaction_id: null })
-      .select()
-      .single();
-    expect(snapshot!.correcting_transaction_id).toBeNull();
+    const snapshot = await insertOne(
+      client
+        .from("balance_snapshots")
+        .insert({ user_id: userId, account_id: bankId, date: "2026-01-20", actual_balance: actual as unknown as number, tracked_balance_at_time: tracked.toString() as unknown as number, correcting_transaction_id: null })
+        .select()
+        .single(),
+      "balance_snapshots",
+    );
+    expect(snapshot.correcting_transaction_id).toBeNull();
 
     // Tracked balance is genuinely unchanged — no phantom correction happened.
     const stillTracked = await trackedBalanceOf(client, bankId);

@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { computeSpendByCategory } from "@/lib/ledger/category-spend";
 import { toMoneyString } from "@/lib/ledger/money";
 import type { Database } from "@/types/database";
+import { insertOne } from "./helpers/insert";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const PUBLISHABLE_KEY =
@@ -28,12 +29,19 @@ describe.runIf(process.env.RUN_RLS_TESTS === "1")("Reports (PRD §9), live", () 
     userId = created.user!.id;
 
     client = createAdminClient<Database>(URL, PUBLISHABLE_KEY);
-    await client.auth.signInWithPassword({ email, password: "test-password-123" });
+    const { error: signInError } = await client.auth.signInWithPassword({ email, password: "test-password-123" });
+    if (signInError) throw signInError;
 
-    const { data: bank } = await client.from("accounts").insert({ user_id: userId, name: "Bank", account_type: "bank" }).select().single();
-    bankId = bank!.id;
-    const { data: category } = await client.from("categories").insert({ user_id: userId, name: "Shopping", kind: "expense" }).select().single();
-    categoryId = category!.id;
+    const bank = await insertOne(
+      client.from("accounts").insert({ user_id: userId, name: "Bank", account_type: "bank" }).select().single(),
+      "accounts/Bank",
+    );
+    bankId = bank.id;
+    const category = await insertOne(
+      client.from("categories").insert({ user_id: userId, name: "Shopping", kind: "expense" }).select().single(),
+      "categories/Shopping",
+    );
+    categoryId = category.id;
   });
 
   afterAll(async () => {
@@ -41,11 +49,14 @@ describe.runIf(process.env.RUN_RLS_TESTS === "1")("Reports (PRD §9), live", () 
   });
 
   it("a January category total shrinks after a February refund lands against a January expense", async () => {
-    const { data: original } = await client
-      .from("transactions")
-      .insert({ user_id: userId, type: "expense", account_id: bankId, category_id: categoryId, amount: 2000, date: "2026-01-15" })
-      .select()
-      .single();
+    const original = await insertOne(
+      client
+        .from("transactions")
+        .insert({ user_id: userId, type: "expense", account_id: bankId, category_id: categoryId, amount: 2000, date: "2026-01-15" })
+        .select()
+        .single(),
+      "transactions",
+    );
 
     async function januaryShoppingTotal() {
       const { data: transactions } = await client.from("transactions").select("*");
@@ -64,7 +75,7 @@ describe.runIf(process.env.RUN_RLS_TESTS === "1")("Reports (PRD §9), live", () 
 
     // A refund lands in February, dated after the fact, against the January expense.
     await client.from("transactions").insert({
-      user_id: userId, type: "refund", account_id: bankId, amount: 500, date: "2026-02-03", refunded_transaction_id: original!.id,
+      user_id: userId, type: "refund", account_id: bankId, amount: 500, date: "2026-02-03", refunded_transaction_id: original.id,
     });
 
     // January's own report, viewed now, shows the shrunken figure.

@@ -13,6 +13,7 @@ import { computePeriodSpend } from "@/lib/ledger/spend";
 import { toMoneyString } from "@/lib/ledger/money";
 import type { LedgerTransaction } from "@/lib/ledger/types";
 import type { Database } from "@/types/database";
+import { insertOne } from "./helpers/insert";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const PUBLISHABLE_KEY =
@@ -40,28 +41,38 @@ describe.runIf(process.env.RUN_RLS_TESTS === "1")("Recurring templates (PRD §5,
     userId = created.user!.id;
 
     client = createAdminClient<Database>(URL, PUBLISHABLE_KEY);
-    await client.auth.signInWithPassword({ email, password: "test-password-123" });
+    const { error: signInError } = await client.auth.signInWithPassword({ email, password: "test-password-123" });
+    if (signInError) throw signInError;
 
-    const { data: bank } = await client
-      .from("accounts")
-      .insert({ user_id: userId, name: "Bank", account_type: "bank" })
-      .select()
-      .single();
-    bankId = bank!.id;
+    const bank = await insertOne(
+      client
+        .from("accounts")
+        .insert({ user_id: userId, name: "Bank", account_type: "bank" })
+        .select()
+        .single(),
+      "accounts/Bank",
+    );
+    bankId = bank.id;
 
-    const { data: spend } = await client
-      .from("accounts")
-      .insert({ user_id: userId, name: "Spend", account_type: "bank", is_spend_account: true })
-      .select()
-      .single();
-    spendId = spend!.id;
+    const spend = await insertOne(
+      client
+        .from("accounts")
+        .insert({ user_id: userId, name: "Spend", account_type: "bank", is_spend_account: true })
+        .select()
+        .single(),
+      "accounts/Spend",
+    );
+    spendId = spend.id;
 
-    const { data: category } = await client
-      .from("categories")
-      .insert({ user_id: userId, name: "Rent", kind: "expense" })
-      .select()
-      .single();
-    categoryId = category!.id;
+    const category = await insertOne(
+      client
+        .from("categories")
+        .insert({ user_id: userId, name: "Rent", kind: "expense" })
+        .select()
+        .single(),
+      "categories/Rent",
+    );
+    categoryId = category.id;
   });
 
   afterAll(async () => {
@@ -69,9 +80,10 @@ describe.runIf(process.env.RUN_RLS_TESTS === "1")("Recurring templates (PRD §5,
   });
 
   it("confirming a due template posts a transaction and advances next_due_date by one month", async () => {
-    const { data: template } = await client
-      .from("recurring_templates")
-      .insert({
+    const template = await insertOne(
+      client
+        .from("recurring_templates")
+        .insert({
         user_id: userId,
         kind: "expense",
         category_id: categoryId,
@@ -79,33 +91,35 @@ describe.runIf(process.env.RUN_RLS_TESTS === "1")("Recurring templates (PRD §5,
         amount: 15000,
         frequency: "monthly",
         next_due_date: "2026-01-31",
-      })
-      .select()
-      .single();
+        })
+        .select()
+        .single(),
+      "recurring_templates",
+    );
 
     // The action's own logic, exercised directly:
     const confirmedAmount = "15500"; // user bumped it at confirm time, per §5
     await client.from("transactions").insert({
       user_id: userId,
-      type: template!.kind,
-      account_id: template!.account_id,
-      category_id: template!.category_id,
+      type: template.kind,
+      account_id: template.account_id,
+      category_id: template.category_id,
       amount: confirmedAmount as unknown as number,
-      date: template!.next_due_date,
-      recurring_template_id: template!.id,
+      date: template.next_due_date,
+      recurring_template_id: template.id,
     });
-    const nextDueDate = computeNextDueDate(template!.next_due_date, template!.frequency, template!.custom_interval_days ?? undefined);
-    await client.from("recurring_templates").update({ next_due_date: nextDueDate, amount: confirmedAmount as unknown as number }).eq("id", template!.id);
+    const nextDueDate = computeNextDueDate(template.next_due_date, template.frequency, template.custom_interval_days ?? undefined);
+    await client.from("recurring_templates").update({ next_due_date: nextDueDate, amount: confirmedAmount as unknown as number }).eq("id", template.id);
 
     // Feb 2026 isn't a leap year — the 31st clamps to the 28th (PRD §10.11).
-    const { data: updatedTemplate } = await client.from("recurring_templates").select("*").eq("id", template!.id).single();
+    const { data: updatedTemplate } = await client.from("recurring_templates").select("*").eq("id", template.id).single();
     expect(updatedTemplate!.next_due_date).toBe("2026-02-28");
     expect(toMoneyString(updatedTemplate!.amount)).toBe("15500");
 
     const { data: postedTxn } = await client
       .from("transactions")
       .select("*")
-      .eq("recurring_template_id", template!.id)
+      .eq("recurring_template_id", template.id)
       .single();
     expect(toMoneyString(postedTxn!.amount)).toBe("15500");
     expect(postedTxn!.date).toBe("2026-01-31");
@@ -131,9 +145,10 @@ describe.runIf(process.env.RUN_RLS_TESTS === "1")("Recurring templates (PRD §5,
     await client
       .from("transactions")
       .insert({ user_id: userId, type: "transfer", account_id: bankId, to_account_id: spendId, amount: 20000, date: "2026-03-01" });
-    const { data: newTemplate } = await client
-      .from("recurring_templates")
-      .insert({
+    const newTemplate = await insertOne(
+      client
+        .from("recurring_templates")
+        .insert({
         user_id: userId,
         kind: "expense",
         category_id: categoryId,
@@ -141,9 +156,11 @@ describe.runIf(process.env.RUN_RLS_TESTS === "1")("Recurring templates (PRD §5,
         amount: 5000,
         frequency: "monthly",
         next_due_date: "2026-03-02",
-      })
-      .select()
-      .single();
+        })
+        .select()
+        .single(),
+      "recurring_templates",
+    );
 
     const { data: transactions } = await client.from("transactions").select("*");
     const ledgerTransactions: LedgerTransaction[] = transactions!.map((t) => ({
@@ -171,6 +188,6 @@ describe.runIf(process.env.RUN_RLS_TESTS === "1")("Recurring templates (PRD §5,
     // isolated per-test since each builds on a realistic ongoing session.
     const upcomingDue = dueTemplates!.reduce((sum, t) => sum + Number(toMoneyString(t.amount)), 0);
     expect(upcomingDue).toBe(15500 + 5000);
-    expect(dueTemplates!.map((t) => t.id)).toContain(newTemplate!.id);
+    expect(dueTemplates!.map((t) => t.id)).toContain(newTemplate.id);
   });
 });

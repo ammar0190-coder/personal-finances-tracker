@@ -14,6 +14,7 @@ import { computeAccountBalance } from "@/lib/ledger/balance";
 import { toMoneyString } from "@/lib/ledger/money";
 import type { LedgerAccount, LedgerTransaction } from "@/lib/ledger/types";
 import type { Database } from "@/types/database";
+import { insertOne } from "./helpers/insert";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const PUBLISHABLE_KEY =
@@ -45,33 +46,45 @@ describe.runIf(process.env.RUN_RLS_TESTS === "1")("End-to-end: real accounts, ca
     const { error: signInError } = await client.auth.signInWithPassword({ email, password: "test-password-123" });
     if (signInError) throw signInError;
 
-    const { data: bank } = await client
-      .from("accounts")
-      .insert({ user_id: userId, name: "HDFC", account_type: "bank", is_spend_account: true })
-      .select()
-      .single();
-    bankId = bank!.id;
+    const bank = await insertOne(
+      client
+        .from("accounts")
+        .insert({ user_id: userId, name: "HDFC", account_type: "bank", is_spend_account: true })
+        .select()
+        .single(),
+      "accounts/HDFC",
+    );
+    bankId = bank.id;
 
-    const { data: card } = await client
-      .from("accounts")
-      .insert({ user_id: userId, name: "Credit Card", account_type: "credit_card" })
-      .select()
-      .single();
-    cardId = card!.id;
+    const card = await insertOne(
+      client
+        .from("accounts")
+        .insert({ user_id: userId, name: "Credit Card", account_type: "credit_card" })
+        .select()
+        .single(),
+      "accounts/Credit Card",
+    );
+    cardId = card.id;
 
-    const { data: food } = await client
-      .from("categories")
-      .insert({ user_id: userId, name: "Food", kind: "expense" })
-      .select()
-      .single();
-    foodCategoryId = food!.id;
+    const food = await insertOne(
+      client
+        .from("categories")
+        .insert({ user_id: userId, name: "Food", kind: "expense" })
+        .select()
+        .single(),
+      "categories/Food",
+    );
+    foodCategoryId = food.id;
 
-    const { data: salary } = await client
-      .from("categories")
-      .insert({ user_id: userId, name: "Salary", kind: "income" })
-      .select()
-      .single();
-    salaryCategoryId = salary!.id;
+    const salary = await insertOne(
+      client
+        .from("categories")
+        .insert({ user_id: userId, name: "Salary", kind: "income" })
+        .select()
+        .single(),
+      "categories/Salary",
+    );
+    salaryCategoryId = salary.id;
   });
 
   afterAll(async () => {
