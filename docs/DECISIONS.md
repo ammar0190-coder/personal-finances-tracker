@@ -241,3 +241,51 @@ message to decide what to do next).
 **Would change our mind.** Nothing — this is a correctness fact about the schema's own
 constraint graph, verified directly (`iou.integration.test.ts` asserts the naive delete fails
 and the ordered delete succeeds), not a judgment call with real alternatives.
+
+---
+
+## D-11: PWA built by hand rather than with `next-pwa` or Workbox
+
+**Date** 2026-09-10
+**Milestone** M7 (`public/sw.js`, `src/app/manifest.ts`, `src/proxy.ts`)
+
+**This deviates from the PRD's literal wording.** §14 says "a service worker (via `next-pwa` or
+Workbox)". Both are named parenthetically, as the *how*, while the requirement itself is "add to
+home screen and basic offline caching" — which is what got built. Ammar was told about the
+deviation and delegated the call.
+
+**Chosen because** `next-pwa` has no working App Router story on Next.js 16 (this repo is on
+16.3.3) and is effectively unmaintained; the live alternative is Serwist. Either way it is a
+dependency plus a Workbox tree, on a project whose maintenance cost only Ammar absorbs
+(`CLAUDE.md`: ask before adding a dependency). What §14 actually asks for is ~80 lines: a
+manifest, icons, and a worker that precaches a shell. Workbox's value is its runtime caching
+*strategies*, and the decision below is that this app should not have any.
+
+**The caching policy is a correctness decision, not a performance one.** This app holds balances,
+transactions and amounts owed, on a phone that may be handed to someone else. A cached
+authenticated page survives sign-out and can be served to whoever signs in next. So the worker
+caches only immutable, content-hashed build output (`/_next/static/`) and the installable shell
+(icons, manifest, offline page); every navigation, every `/auth/` route and every cross-origin
+request — all Supabase traffic — is network-only, and the default for anything unrecognised is
+network-only too. This is why the generic library defaults are actively wrong here: their
+document/page caching is the exact behaviour that would leak.
+
+`src/lib/pwa/__tests__/sw-cache-policy.test.ts` loads the shipped `public/sw.js` in a sandbox and
+asserts the policy, so a future edit that starts caching pages fails the suite rather than
+shipping.
+
+**Found while building this:** the auth proxy's matcher redirected `/sw.js`,
+`/manifest.webmanifest` and `/offline.html` to `/auth/login`, because a browser fetches all three
+before anyone has signed in. The install prompt would simply never have appeared, with no error
+anywhere. The matcher now skips those three, verified live against a production build — 200 with
+the right content types while signed out, while `/investments` still returns 307.
+
+**Rejected alternatives.** Serwist (rejected: a dependency to buy caching strategies this app is
+deliberately not allowed to use); caching authenticated HTML with a cache-busting-on-sign-out
+scheme (rejected: correctness resting on a sign-out handler that must never fail, to save a page
+load); no service worker at all, manifest only (rejected: Android will install from a manifest
+alone, but there would be no offline page, and phase-2 offline logging needs a worker to exist).
+
+**Would change our mind.** Phase-2 offline logging + sync (§15) means real background sync,
+request queueing and conflict handling. That is where a library earns its keep — revisit then,
+and treat this worker as the thing it replaces rather than something to extend indefinitely.

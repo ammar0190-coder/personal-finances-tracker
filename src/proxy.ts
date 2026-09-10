@@ -11,6 +11,10 @@ export const config = {
   matcher: [
     // Skip static assets and image optimization; everything else gets a
     // session-refresh + auth check pass.
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    //
+    // sw.js, manifest.webmanifest and offline.html are skipped too: a browser
+    // fetches all three before anyone has signed in, and redirecting them to
+    // /auth/login makes the app silently non-installable (PRD §14).
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.webmanifest|offline\\.html|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Offline — Personal Finance Tracker</title>
+<style>
+  :root { color-scheme: light dark; --bg:#ffffff; --fg:#171717; --muted:#5c5c5c; --accent:#2a78d6; --line:#e5e5e5; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0a0a0a; --fg:#fafafa; --muted:#a1a1a1; --line:#262626; } }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100dvh; display:grid; place-items:center; padding:24px;
+         background:var(--bg); color:var(--fg);
+         font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .card { width:100%; max-width:26rem; text-align:center; }
+  .mark { width:64px; height:64px; border-radius:16px; background:var(--accent); margin:0 auto 20px;
+          display:grid; place-items:center; }
+  h1 { font-size:1.25rem; margin:0 0 8px; letter-spacing:-0.01em; }
+  p { color:var(--muted); margin:0 0 20px; }
+  button { font:inherit; font-weight:500; color:#fff; background:var(--accent); border:0;
+           border-radius:10px; padding:10px 20px; cursor:pointer; }
+  button:hover { filter:brightness(1.08); }
+  .note { margin-top:24px; padding-top:16px; border-top:1px solid var(--line);
+          font-size:0.8125rem; color:var(--muted); }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="mark" aria-hidden="true">
+      <svg width="34" height="34" viewBox="0 0 512 512" fill="#fff">
+        <rect x="128" y="280" width="68" height="84"  rx="34" fill-opacity="0.55"/>
+        <rect x="222" y="224" width="68" height="140" rx="34" fill-opacity="0.78"/>
+        <rect x="316" y="148" width="68" height="216" rx="34"/>
+      </svg>
+    </div>
+    <h1>You're offline</h1>
+    <p>Your balances live on the server, so there's nothing reliable to show until the connection is back.</p>
+    <button type="button" onclick="location.reload()">Try again</button>
+    <p class="note">Logging transactions while offline and syncing later is planned, but not built yet.</p>
+  </main>
+</body>
+</html>
