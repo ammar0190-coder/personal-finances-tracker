@@ -11,10 +11,10 @@ import { DeactivateCategoryButton } from "@/components/categories/deactivate-cat
 import { RecurringSection } from "@/components/recurring/recurring-section";
 import { BurnDown } from "@/components/dashboard/burn-down";
 import { IouSnapshot } from "@/components/dashboard/iou-snapshot";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SeedCategoriesButton } from "@/components/onboarding/seed-categories-button";
 import { formatMoney } from "@/lib/ledger/format";
 import { SECTION_HEADING, SECTION_LABEL } from "@/components/shell/section";
+import { TRANSACTION_TYPE_LABELS, labelFor } from "@/lib/select-options";
 
 
 
@@ -55,24 +55,40 @@ export default async function DashboardPage() {
       actions={hasAccounts ? <QuickAdd accounts={accounts} categories={categories} /> : undefined}
     >
       {!hasAccounts ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Let&apos;s set up your accounts</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-6">
-            <div>
-              <p className="mb-2 text-sm">
-                First, load the editable starter category template (Travel, Food, Shopping, House,
-                Leisure, Miscellaneous + Salary, Misc income — PRD §3.1).
-              </p>
+        <section aria-label="Set up your accounts" className="flex max-w-lg flex-col gap-10">
+          <p className="text-base leading-relaxed text-muted-foreground">
+            Two things and you&apos;re tracking. Neither is permanent — categories are editable
+            and accounts can be hidden later.
+          </p>
+
+          <div className="flex flex-col gap-3 border-t border-border pt-6">
+            <div className="flex items-baseline gap-3">
+              <span className="font-heading text-xl text-muted-foreground">1</span>
+              <h2 className="font-heading text-xl">Load starter categories</h2>
+            </div>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Travel, Food, Shopping, House, Leisure and Miscellaneous, plus Salary and Misc
+              income. Rename or remove any of them afterwards.
+            </p>
+            <div className="pt-1">
               <SeedCategoriesButton categoryCount={categories.length} />
             </div>
-            <div>
-              <p className="mb-2 text-sm font-medium">Add your first account</p>
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-border pt-6">
+            <div className="flex items-baseline gap-3">
+              <span className="font-heading text-xl text-muted-foreground">2</span>
+              <h2 className="font-heading text-xl">Add your first account</h2>
+            </div>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              A bank account or a credit card. Mark the one you spend from as your spend account
+              — that&apos;s what the burn-down measures against.
+            </p>
+            <div className="pt-1">
               <AddAccountForm />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       ) : (
         <>
           {/* A ledger, not a card: the most important block on the page, earning
@@ -157,7 +173,7 @@ async function RecentTransactions({
             <div className="flex min-w-0 flex-col gap-0.5">
               <span className="truncate font-medium">{accountsById[t.account_id] ?? "?"}</span>
               <span className="truncate text-xs text-muted-foreground">
-                {t.category_id ? categoriesById[t.category_id] : t.type}
+                {t.category_id ? categoriesById[t.category_id] : labelFor(TRANSACTION_TYPE_LABELS, t.type)}
                 {t.note && ` — ${t.note}`}
                 {` · ${t.date}`}
               </span>

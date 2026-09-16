@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/shell/app-shell";
+import { SECTION_LABEL } from "@/components/shell/section";
 import { listAccounts } from "@/lib/data/accounts";
 import { listCategories } from "@/lib/data/categories";
 import { listTransactions } from "@/lib/data/transactions";
@@ -7,7 +8,6 @@ import { GroupExpenseForm } from "@/components/iou/group-expense-form";
 import { PayableForm } from "@/components/iou/payable-form";
 import { IouEntryRow } from "@/components/iou/iou-entry-row";
 import { FlagReimbursementForm } from "@/components/iou/flag-reimbursement-form";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatMoney } from "@/lib/ledger/format";
 
@@ -29,16 +29,23 @@ export default async function IouPage() {
   return (
     <AppShell title="IOU &amp; Reimbursements">
 
-      <Card>
-        <CardContent className="flex justify-between pt-6 text-sm">
-          <span>
-            Net owed to you: <span className="tabular-nums font-medium">{formatMoney(snapshot.netReceivable)}</span>
+      {/* A position, not a period figure — what stands right now, with
+          written-off entries excluded (PRD §7). */}
+      <section aria-label="Net position" className="flex items-center gap-8 border-y border-border py-4">
+        <div className="flex flex-col gap-1">
+          <span className={SECTION_LABEL}>Owed to you</span>
+          <span aria-label="Net owed to you" className="text-lg tabular-nums">
+            {formatMoney(snapshot.netReceivable)}
           </span>
-          <span>
-            Net you owe: <span className="tabular-nums font-medium">{formatMoney(snapshot.netPayable)}</span>
+        </div>
+        <div className="h-8 w-px bg-border" />
+        <div className="flex flex-col gap-1">
+          <span className={SECTION_LABEL}>You owe</span>
+          <span aria-label="Net you owe" className="text-lg tabular-nums">
+            {formatMoney(snapshot.netPayable)}
           </span>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       <Tabs defaultValue="receivables">
         <TabsList>
@@ -47,73 +54,61 @@ export default async function IouPage() {
           <TabsTrigger value="reimbursements">Reimbursements ({reimbursements.length})</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="receivables" className="flex flex-col gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Group Expense</CardTitle>
-            </CardHeader>
-            <CardContent>
+        <TabsContent value="receivables" className="flex flex-col gap-8 pt-6">
+          <section aria-label="Group Expense" className="flex flex-col">
+            <h2 className={`${SECTION_LABEL} border-b border-border pb-3`}>Group Expense</h2>
+            <div className="pt-4">
               <GroupExpenseForm accounts={accounts} leisureCategories={leisureCategories} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Who owes you</CardTitle>
-            </CardHeader>
-            <CardContent>
+            </div>
+          </section>
+          <section aria-label="Who owes you" className="flex flex-col">
+            <h2 className={`${SECTION_LABEL} border-b border-border pb-3`}>Who owes you</h2>
+            <div className="pt-4">
               {receivables.length === 0 ? (
-                <p className="text-muted-foreground text-sm">Nothing yet.</p>
+                <p className="text-sm text-muted-foreground">Nothing here yet.</p>
               ) : (
                 receivables.map((e) => <IouEntryRow key={e.id} entry={e} accounts={accounts} settlementKind="iou_repayment" />)
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </section>
         </TabsContent>
 
-        <TabsContent value="payables" className="flex flex-col gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Someone fronted an expense</CardTitle>
-            </CardHeader>
-            <CardContent>
+        <TabsContent value="payables" className="flex flex-col gap-8 pt-6">
+          <section aria-label="Someone fronted an expense" className="flex flex-col">
+            <h2 className={`${SECTION_LABEL} border-b border-border pb-3`}>Someone fronted an expense</h2>
+            <div className="pt-4">
               <PayableForm />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Who you owe</CardTitle>
-            </CardHeader>
-            <CardContent>
+            </div>
+          </section>
+          <section aria-label="Who you owe" className="flex flex-col">
+            <h2 className={`${SECTION_LABEL} border-b border-border pb-3`}>Who you owe</h2>
+            <div className="pt-4">
               {payables.length === 0 ? (
-                <p className="text-muted-foreground text-sm">Nothing yet.</p>
+                <p className="text-sm text-muted-foreground">Nothing here yet.</p>
               ) : (
                 payables.map((e) => <IouEntryRow key={e.id} entry={e} accounts={accounts} settlementKind="iou_settlement" />)
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </section>
         </TabsContent>
 
-        <TabsContent value="reimbursements" className="flex flex-col gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Flag an expense</CardTitle>
-            </CardHeader>
-            <CardContent>
+        <TabsContent value="reimbursements" className="flex flex-col gap-8 pt-6">
+          <section aria-label="Flag an expense" className="flex flex-col">
+            <h2 className={`${SECTION_LABEL} border-b border-border pb-3`}>Flag an expense</h2>
+            <div className="pt-4">
               <FlagReimbursementForm recentExpenses={plainExpenses} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Pending reimbursements</CardTitle>
-            </CardHeader>
-            <CardContent>
+            </div>
+          </section>
+          <section aria-label="Pending reimbursements" className="flex flex-col">
+            <h2 className={`${SECTION_LABEL} border-b border-border pb-3`}>Pending reimbursements</h2>
+            <div className="pt-4">
               {reimbursements.length === 0 ? (
-                <p className="text-muted-foreground text-sm">Nothing yet.</p>
+                <p className="text-sm text-muted-foreground">Nothing here yet.</p>
               ) : (
                 reimbursements.map((e) => <IouEntryRow key={e.id} entry={e} accounts={accounts} settlementKind="iou_repayment" />)
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </section>
         </TabsContent>
       </Tabs>
     </AppShell>

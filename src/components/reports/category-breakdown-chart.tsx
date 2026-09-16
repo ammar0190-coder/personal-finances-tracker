@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { CATEGORICAL_COLORS } from "@/lib/charts/colors";
+import { SELECTED_BAR_COLOR, UNSELECTED_BAR_COLOR } from "@/lib/charts/colors";
 import type { CategoryBreakdownRow } from "@/lib/data/reports";
 import { formatMoney } from "@/lib/ledger/format";
 
@@ -41,6 +41,10 @@ export function CategoryBreakdownChart({ rows }: { rows: CategoryBreakdownRow[] 
               // Plotted as a number for position only; the tooltip shows the exact amount.
               formatter={(_value, _name, item) => [formatMoney(item.payload.amountExact), "Spend"]}
               contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", fontSize: 12 }}
+              // Recharts' default hover cursor is an opaque light-grey block,
+              // which on a dark ground reads as a rendering fault rather than a
+              // highlight.
+              cursor={{ fill: "var(--secondary)", fillOpacity: 0.45 }}
             />
             <Bar
               dataKey="amount"
@@ -51,8 +55,11 @@ export function CategoryBreakdownChart({ rows }: { rows: CategoryBreakdownRow[] 
               }}
               cursor="pointer"
             >
-              {chartData.map((entry, i) => (
-                <Cell key={entry.categoryId} fill={CATEGORICAL_COLORS[i % CATEGORICAL_COLORS.length]} />
+              {chartData.map((entry) => (
+                <Cell
+                  key={entry.categoryId}
+                  fill={entry.categoryId === expanded ? SELECTED_BAR_COLOR : UNSELECTED_BAR_COLOR}
+                />
               ))}
             </Bar>
           </BarChart>
@@ -60,14 +67,18 @@ export function CategoryBreakdownChart({ rows }: { rows: CategoryBreakdownRow[] 
       </div>
 
       {expandedRow && (
-        <div className="rounded-md border p-3 text-sm">
-          <p className="mb-2 font-medium">{expandedRow.name} — subcategories</p>
+        <div className="flex flex-col border-t border-border pt-3 text-sm">
+          <p className="mb-2 text-xs tracking-[0.05em] text-muted-foreground uppercase">
+            {expandedRow.name} — subcategories
+          </p>
           {expandedRow.subcategories.length === 0 ? (
-            <p className="text-muted-foreground text-xs">No subcategory detail logged — all blended (PRD §4).</p>
+            <p className="text-xs text-muted-foreground">
+              All of {expandedRow.name} was logged blended, with no subcategory detail (PRD §4).
+            </p>
           ) : (
-            <ul className="flex flex-col gap-1">
+            <ul className="flex flex-col">
               {expandedRow.subcategories.map((s) => (
-                <li key={s.categoryId} className="flex justify-between">
+                <li key={s.categoryId} className="flex justify-between border-b border-border/60 py-2 last:border-b-0">
                   <span>{s.name}</span>
                   <span className="tabular-nums">{formatMoney(s.amount)}</span>
                 </li>

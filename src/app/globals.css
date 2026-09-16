@@ -23,6 +23,8 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-owed: var(--owed);
+  --color-chart-selected: var(--chart-selected);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -66,6 +68,8 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
+  /* Credit-card debt: a warm neutral, deliberately not a signal colour. */
+  --owed: oklch(0.52 0.03 80);
   --ring: oklch(0.52 0.16 285);
   /* Categorical palette for Reports charts — dataviz skill's validated
      default ordering (fixed hue order, CVD-safe adjacent pairs). Replaces
@@ -77,6 +81,9 @@
   --chart-4: #eda100; /* yellow */
   --chart-5: #e87ba4; /* magenta */
   --chart-6: #008300; /* green */
+  /* One measure, one hue; the accent marks only the drilled-into bar. */
+  --chart-unselected: #6b6b7a;
+  --chart-selected: #6b5ce7;
   --chart-sequential: #2F8E7E; /* single-series lines (e.g. spend trend) */
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
@@ -107,6 +114,8 @@
   --destructive: oklch(0.65 0.17 22);
   --border: oklch(0.28 0.005 285);
   --input: oklch(0.30 0.005 285);
+  /* Credit-card debt: a warm neutral, deliberately not a signal colour. */
+  --owed: oklch(0.68 0.02 80);
   --ring: oklch(0.68 0.145 285);
   --chart-1: #3987e5; /* blue */
   --chart-2: #d95926; /* orange */
@@ -114,6 +123,9 @@
   --chart-4: #c98500; /* yellow */
   --chart-5: #d55181; /* magenta */
   --chart-6: #008300; /* green */
+  /* One measure, one hue; the accent marks only the drilled-into bar. */
+  --chart-unselected: #4a4a57;
+  --chart-selected: #8b85f5;
   --chart-sequential: #5FB8A6;
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);

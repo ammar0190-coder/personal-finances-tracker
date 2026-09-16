@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { IOU_STATUS_OPTIONS, labelFor } from "@/lib/select-options";
 import { useRouter } from "next/navigation";
 import { Decimal } from "decimal.js";
 import { recordRepayment, recordSettlement, writeOffEntry } from "@/lib/actions/iou";
@@ -82,7 +83,7 @@ export function IouEntryRow({
             {formatMoney(entry.amount_settled)} / {formatMoney(remaining)}
           </span>
           <Badge variant={entry.status === "settled" ? "default" : entry.status === "written_off" ? "secondary" : "outline"}>
-            {entry.status}
+            {labelFor(IOU_STATUS_OPTIONS, entry.status)}
           </Badge>
         </div>
       </div>

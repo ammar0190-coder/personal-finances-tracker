@@ -1,15 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { VEHICLE_TYPE_OPTIONS, labelFor } from "@/lib/select-options";
 import { Decimal } from "decimal.js";
 import type { InstrumentWithTotals } from "@/lib/data/instruments";
 import { formatMoney } from "@/lib/ledger/format";
-
-const VEHICLE_LABELS: Record<string, string> = {
-  equity: "Equity",
-  mutual_fund: "Mutual Fund",
-  ppf: "PPF",
-};
 
 /** PRD §6: tick-box filters per vehicle type, combining into any subset, like a brokerage portfolio page. */
 export function HoldingsList({ holdings }: { holdings: InstrumentWithTotals[] }) {
@@ -30,7 +25,7 @@ export function HoldingsList({ holdings }: { holdings: InstrumentWithTotals[] })
   return (
     <div className="flex flex-col gap-3">
       <div className="flex gap-4 text-sm">
-        {Object.entries(VEHICLE_LABELS).map(([value, label]) => (
+        {VEHICLE_TYPE_OPTIONS.map(({ value, label }) => (
           <label key={value} className="flex items-center gap-1.5">
             <input type="checkbox" checked={filters.has(value)} onChange={() => toggle(value)} />
             {label}
@@ -46,7 +41,7 @@ export function HoldingsList({ holdings }: { holdings: InstrumentWithTotals[] })
               <span>
                 {h.name}
                 <span className="text-muted-foreground ml-2 text-xs">
-                  {VEHICLE_LABELS[h.vehicle_type]}
+                  {labelFor(VEHICLE_TYPE_OPTIONS, h.vehicle_type)}
                   {h.symbol ? ` · ${h.symbol}${h.exchange ? `:${h.exchange}` : ""}` : ""}
                 </span>
               </span>

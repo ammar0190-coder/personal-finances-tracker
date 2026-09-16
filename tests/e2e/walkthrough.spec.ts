@@ -43,7 +43,7 @@ test("new user: onboarding to reports, persisted across reload and re-login", as
   await test.step("onboarding shows for a user with no accounts", async () => {
     await page.goto("/");
     await expectAppPage(page);
-    await expect(page.getByText("Let's set up your accounts")).toBeVisible();
+    await expect(region(page, "Set up your accounts")).toBeVisible();
     await snapshot(page, testInfo, "01-onboarding");
   });
 
@@ -56,7 +56,7 @@ test("new user: onboarding to reports, persisted across reload and re-login", as
     const accountForm = form(page, "Add an account");
     await expect(comboboxValue(accountForm, "Account type")).toHaveText("Bank");
     await accountForm.getByLabel("Name", { exact: true }).fill("HDFC");
-    await page.getByText("Spend account").click();
+    await accountForm.getByRole("checkbox", { name: /Spend account/ }).check();
     await page.getByRole("button", { name: "Add account" }).click();
     await expect(region(page, "Accounts")).toBeVisible();
     await expectAppPage(page);
@@ -165,14 +165,14 @@ test("new user: onboarding to reports, persisted across reload and re-login", as
     await page.getByRole("button", { name: "Add payable" }).click();
     await expect(page.getByRole("tab", { name: "Payables (1)" })).toBeVisible();
     await expect(page.getByText("₹0.00 / ₹250.00")).toBeVisible();
-    await expect(page.getByText(/Net you owe:/)).toContainText("₹250.00");
+    await expect(page.getByLabel("Net you owe")).toHaveText("₹250.00");
     await snapshot(page, testInfo, "05-iou");
   });
 
   await test.step("reports reflect the logged spend", async () => {
     await page.goto("/reports");
     await expectAppPage(page);
-    await expect(page.getByText(/Category breakdown/)).toBeVisible();
+    await expect(region(page, "Category breakdown")).toBeVisible();
     const chart = page.locator(".recharts-wrapper").first();
     await expect(chart.getByText("Food", { exact: true })).toBeVisible();
     await chart.locator(".recharts-rectangle").first().click();

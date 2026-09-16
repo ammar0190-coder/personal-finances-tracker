@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
+import { SECTION_LABEL } from "@/components/shell/section";
 import { getCategoryBreakdown, getMonthlyTrend, getSavingsRateForPeriod } from "@/lib/data/reports";
 import { CategoryBreakdownChart } from "@/components/reports/category-breakdown-chart";
 import { TrendChart } from "@/components/reports/trend-chart";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatMoney } from "@/lib/ledger/format";
 
 type Window = "weekly" | "monthly" | "all-time";
@@ -43,52 +43,56 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   return (
     <AppShell title="Reports">
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Category breakdown — {label}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex gap-3 text-xs">
+      <section aria-label="Category breakdown" className="flex flex-col">
+        <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-border pb-3">
+          <h2 className={SECTION_LABEL}>Spend by category — {label}</h2>
+          {/* Real URL params, not client state: a period stays shareable. */}
+          <div className="flex gap-1 text-xs">
             {(["weekly", "monthly", "all-time"] as const).map((w) => (
               <Link
                 key={w}
                 href={`/reports?window=${w}`}
-                className={w === window ? "font-medium underline" : "text-muted-foreground underline"}
+                aria-current={w === window ? "page" : undefined}
+                className={
+                  w === window
+                    ? "rounded-md bg-secondary px-2.5 py-1 font-medium text-foreground"
+                    : "rounded-md px-2.5 py-1 text-muted-foreground hover:text-foreground"
+                }
               >
-                {w}
+                {w === "all-time" ? "All time" : w[0].toUpperCase() + w.slice(1)}
               </Link>
             ))}
           </div>
+        </div>
+        <div className="pt-4">
           <CategoryBreakdownChart rows={breakdown} />
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Trend — last 12 months</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <section aria-label="Trend" className="flex flex-col">
+        <h2 className={`${SECTION_LABEL} border-b border-border pb-3`}>Trend — last 12 months</h2>
+        <div className="pt-4">
           <TrendChart points={trend} />
-          <p className="text-muted-foreground mt-2 text-xs">
-            Effective spend — a past month can keep shrinking as refunds/repayments land against
-            it (PRD §10.3).
+          <p className="mt-2 text-xs text-muted-foreground">
+            Effective spend — a past month can keep shrinking as refunds and repayments land
+            against it (PRD §10.3).
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Savings rate — {label}</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <section aria-label="Savings rate" className="flex flex-col">
+        <h2 className={`${SECTION_LABEL} border-b border-border pb-3`}>Savings rate — {label}</h2>
+        <div className="flex items-baseline justify-between pt-4">
           {savings.rate === null ? (
-            <p className="text-muted-foreground text-sm">No income logged for this period yet.</p>
+            <p className="text-sm text-muted-foreground">No income logged for this period yet.</p>
           ) : (
-            <p className="text-2xl font-semibold">{(Number(savings.rate) * 100).toFixed(1)}%</p>
+            <p className="font-heading text-3xl tabular-nums">{(Number(savings.rate) * 100).toFixed(1)}%</p>
           )}
-          <p className="text-muted-foreground text-xs">{formatMoney(savings.raw)} moved into savings</p>
-        </CardContent>
-      </Card>
+          <p className="text-xs text-muted-foreground">
+            <span className="tabular-nums">{formatMoney(savings.raw)}</span> moved into savings
+          </p>
+        </div>
+      </section>
     </AppShell>
   );
 }
