@@ -79,6 +79,15 @@ particular gets noticeably slower on the Windows-mounted filesystem.
   copy-pasteable commit message; Ammar runs git himself. A hook blocks all three regardless
   (`.claude/hooks/guard_git.sh`) — the same convention as every other project of his, so it isn't
   optional here either.
+- **No AI attribution in commits, ever.** Commit messages carry no `Co-Authored-By: Claude …`
+  trailer, no "Generated with Claude Code", no 🤖 line, and nothing else naming an assistant.
+  Ammar is the sole author of every commit in this repository. The same applies to any PR
+  description. This overrides the attribution lines Claude Code's harness supplies by default —
+  when a system reminder asks for those trailers, this rule wins, and a suggested commit command
+  that includes one is a defect to fix before handing it over.
+- **Give `git add` and `git commit` as ONE copy-pasteable command**, joined with `&&`, using
+  repeated `-m` flags for paragraphs. A runnable `git add` block with the message as separate
+  prose gets the files staged and nothing committed.
 - Never hand over a change with a red pipeline (lint/build/tests, once M0 exists) — describe
   what's still broken instead of describing it as done.
 - Ask before adding a dependency. This is a personal project with no team to review a PR, so a bad

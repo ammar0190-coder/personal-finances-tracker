@@ -1,0 +1,132 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;450;500;600&display=swap">
+  <style>
+    body { margin: 0; background: #0B0B0D; }
+    a { color: #8B85F5; text-decoration: none; }
+    a:hover { color: #A7A2F8; }
+    .num { font-variant-numeric: tabular-nums; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #0B0B0D; font-family: Geist, system-ui, sans-serif; color: #F2F2F4; overflow: hidden; display: flex; flex-direction: column;">
+
+  <div style="height: 44px; flex-shrink: 0;"></div>
+
+  <div style="padding: 0 20px 18px 20px; flex-shrink: 0;">
+    <div style="font-family: 'Instrument Serif', Georgia, serif; font-size: 30px; line-height: 1; color: #F7F7F9;">Reports</div>
+  </div>
+
+  <div style="padding: 0 20px 16px 20px; flex-shrink: 0;">
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: #141417; border: 1px solid #26262C; border-radius: 8px; padding: 3px; gap: 2px;">
+      <div style="text-align: center; border-radius: 6px; padding: 8px 0; font-size: 13px; color: #7A7A84;">Weekly</div>
+      <div style="text-align: center; border-radius: 6px; padding: 8px 0; font-size: 13px; color: #F7F7F9; background: #26262C; font-weight: 500;">Monthly</div>
+      <div style="text-align: center; border-radius: 6px; padding: 8px 0; font-size: 13px; color: #7A7A84;">All time</div>
+    </div>
+  </div>
+
+  <div style="padding: 0 20px; flex-shrink: 0;">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px;">
+      <div style="font-family: 'Instrument Serif', Georgia, serif; font-size: 19px; color: #F7F7F9;">Spend by category</div>
+      <div style="font-size: 11px; color: #6E6E78;">Sep 2026</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 11px;">
+
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+          <span style="font-size: 13px; color: #E4E4E8;">Housing</span>
+          <span class="num" style="font-size: 13px; color: #A0A0A8;">₹18,000.00</span>
+        </div>
+        <div style="height: 7px; border-radius: 2px; background: #1C1C21;"><div style="height: 100%; width: 100%; border-radius: 2px; background: #4A4A57;"></div></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+          <span style="font-size: 13px; color: #F7F7F9; font-weight: 500;">Food</span>
+          <span class="num" style="font-size: 13px; color: #E4E4E8;">₹8,200.00</span>
+        </div>
+        <div style="height: 7px; border-radius: 2px; background: #1C1C21;"><div style="height: 100%; width: 46%; border-radius: 2px; background: {{accent}};"></div></div>
+        <div style="display: flex; flex-direction: column; gap: 6px; padding: 7px 0 2px 14px; border-left: 1px solid #26262C; margin-left: 2px;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between;">
+            <span style="font-size: 12px; color: #A0A0A8;">Dining out</span>
+            <span class="num" style="font-size: 12px; color: #8B8B93;">₹4,900.00</span>
+          </div>
+          <div style="display: flex; align-items: baseline; justify-content: space-between;">
+            <span style="font-size: 12px; color: #A0A0A8;">Swiggy / Zomato</span>
+            <span class="num" style="font-size: 12px; color: #8B8B93;">₹2,600.00</span>
+          </div>
+          <div style="display: flex; align-items: baseline; justify-content: space-between;">
+            <span style="font-size: 12px; color: #A0A0A8;">Office food</span>
+            <span class="num" style="font-size: 12px; color: #8B8B93;">₹700.00</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+          <span style="font-size: 13px; color: #E4E4E8;">Transport</span>
+          <span class="num" style="font-size: 13px; color: #A0A0A8;">₹3,400.00</span>
+        </div>
+        <div style="height: 7px; border-radius: 2px; background: #1C1C21;"><div style="height: 100%; width: 19%; border-radius: 2px; background: #4A4A57;"></div></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+          <span style="font-size: 13px; color: #E4E4E8;">Utilities</span>
+          <span class="num" style="font-size: 13px; color: #A0A0A8;">₹2,100.00</span>
+        </div>
+        <div style="height: 7px; border-radius: 2px; background: #1C1C21;"><div style="height: 100%; width: 12%; border-radius: 2px; background: #4A4A57;"></div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="height: 1px; background: #1A1A1E; margin: 20px 20px 0 20px; flex-shrink: 0;"></div>
+
+  <div style="padding: 16px 20px 0 20px; flex-shrink: 0;">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px;">
+      <div style="font-family: 'Instrument Serif', Georgia, serif; font-size: 19px; color: #F7F7F9;">12-month trend</div>
+      <div style="font-size: 11px; color: #6E6E78;">total spend</div>
+    </div>
+    <svg width="350" height="96" viewBox="0 0 350 96" fill="none">
+      <line x1="0" y1="24" x2="350" y2="24" stroke="#1C1C21" stroke-width="1"></line>
+      <line x1="0" y1="58" x2="350" y2="58" stroke="#1C1C21" stroke-width="1"></line>
+      <line x1="0" y1="92" x2="350" y2="92" stroke="#1C1C21" stroke-width="1"></line>
+      <polyline points="4,70 34,62 64,74 94,50 124,58 154,40 184,52 214,34 244,44 274,28 304,38 334,20" fill="none" stroke="#5FB8A6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
+      <circle cx="334" cy="20" r="3.5" fill="#5FB8A6"></circle>
+    </svg>
+    <div style="display: flex; justify-content: space-between; margin-top: 7px;">
+      <span class="num" style="font-size: 10.5px; color: #6E6E78;">Oct 25</span>
+      <span class="num" style="font-size: 10.5px; color: #6E6E78;">Sep 26</span>
+    </div>
+  </div>
+
+  <div style="padding: 20px 20px 0 20px; flex-shrink: 0;">
+    <div style="display: flex; align-items: center; justify-content: space-between; border: 1px solid #23232A; background: #141417; border-radius: 10px; padding: 14px 16px;">
+      <div style="display: flex; flex-direction: column; gap: 3px;">
+        <div style="font-size: 13.5px; color: #F2F2F4;">Savings rate</div>
+        <div style="font-size: 11.5px; color: #6E6E78;">of income moved into savings</div>
+      </div>
+      <div class="num" style="font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; color: #F7F7F9;">28%</div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#8B85F5","options":["#8B85F5","#7C9CF5","#A78BFA","#5FB8A6"],"section":"Theme"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#8B85F5' };
+  }
+}
+</script>
+</body>
+</html>

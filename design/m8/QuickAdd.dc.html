@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;450;500;600&display=swap">
+  <style>
+    body { margin: 0; background: #0B0B0D; }
+    a { color: #8B85F5; text-decoration: none; }
+    a:hover { color: #A7A2F8; }
+    .num { font-variant-numeric: tabular-nums; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #0B0B0D; font-family: Geist, system-ui, sans-serif; color: #F2F2F4; overflow: hidden; position: relative;">
+
+  <div style="position: absolute; inset: 0; background: #0B0B0D; padding: 44px 20px 0 20px; display: flex; flex-direction: column;">
+    <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 18px;">
+      <div style="font-family: 'Instrument Serif', Georgia, serif; font-size: 30px; line-height: 1; color: #F7F7F9;">Dashboard</div>
+      <div style="width: 30px; height: 30px; border-radius: 50%; background: #232329; border: 1px solid #2A2A2E;"></div>
+    </div>
+    <div style="font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: #8B8B93; margin-bottom: 12px;">Your accounts</div>
+    <div style="height: 1px; background: #2A2A2E;"></div>
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0;">
+      <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 15.5px; color: #F2F2F4;">HDFC Savings</span><span style="font-size: 12px; color: #8B8B93;">Bank</span></div>
+      <span class="num" style="font-size: 19px; font-weight: 500; color: #6E6E78; letter-spacing: 0.02em;">₹xx,xx,xxx</span>
+    </div>
+    <div style="height: 1px; background: #1E1E22;"></div>
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0;">
+      <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 15.5px; color: #F2F2F4;">SBI Spend</span><span style="font-size: 12px; color: #8B8B93;">Bank</span></div>
+      <span class="num" style="font-size: 19px; font-weight: 500; color: #F7F7F9;">₹73,349.50</span>
+    </div>
+    <div style="height: 1px; background: #2A2A2E;"></div>
+  </div>
+  <div style="position: absolute; inset: 0; background: rgba(5,5,7,0.62);"></div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #121216; border-top: 1px solid #2A2A2E; border-radius: 18px 18px 0 0; padding: 12px 20px 28px 20px; display: flex; flex-direction: column; gap: 18px;">
+
+    <div style="width: 38px; height: 4px; border-radius: 3px; background: #33333A; align-self: center;"></div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <div style="font-family: 'Instrument Serif', Georgia, serif; font-size: 24px; color: #F7F7F9;">Add expense</div>
+      <div style="display: flex; align-items: center; gap: 6px; border: 1px solid #2A2A2E; border-radius: 7px; padding: 7px 10px;">
+        <span style="font-size: 12.5px; color: #A0A0A8;">Change type</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6E6E78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: baseline; gap: 4px; border-bottom: 1px solid #2A2A2E; padding-bottom: 12px;">
+      <span class="num" style="font-size: 34px; font-weight: 450; color: #6E6E78;">₹</span>
+      <span class="num" style="font-size: 34px; font-weight: 450; color: #F7F7F9;">320.00</span>
+      <div style="width: 1.5px; height: 30px; background: {{accent}}; margin-left: 2px;"></div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 11px;">
+
+      <div style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; border: 1px solid #26262C; background: #17171B; border-radius: 9px; padding: 0 14px;">
+        <span style="font-size: 12px; color: #7A7A84;">Category</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 14px; color: #F2F2F4;">Food › Dining out</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E78" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; border: 1px solid #26262C; background: #17171B; border-radius: 9px; padding: 0 14px;">
+        <span style="font-size: 12px; color: #7A7A84;">Account</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 14px; color: #F2F2F4;">SBI Spend</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E6E78" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; border: 1px solid #26262C; background: #17171B; border-radius: 9px; padding: 0 14px;">
+          <span style="font-size: 12px; color: #7A7A84;">Date</span>
+          <span class="num" style="font-size: 14px; color: #F2F2F4;">12 Sep</span>
+        </div>
+        <div style="display: flex; align-items: center; min-height: 44px; border: 1px solid #26262C; background: #17171B; border-radius: 9px; padding: 0 14px;">
+          <span style="font-size: 14px; color: #5E5E68;">Note</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 9px; padding: 2px 0;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      <span style="font-size: 13.5px; color: {{accent}};">Add another line</span>
+      <span style="font-size: 12px; color: #6E6E78;">— log a whole day at once</span>
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: center; background: {{accent}}; color: #0B0B0D; border-radius: 10px; min-height: 50px; font-size: 15px; font-weight: 500;">Save expense</div>
+
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#8B85F5","options":["#8B85F5","#7C9CF5","#A78BFA","#5FB8A6"],"section":"Theme"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#8B85F5' };
+  }
+}
+</script>
+</body>
+</html>

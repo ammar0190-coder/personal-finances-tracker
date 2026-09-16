@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;450;500;600&display=swap">
+  <style>
+    body { margin: 0; background: #0B0B0D; }
+    a { color: #8B85F5; text-decoration: none; }
+    a:hover { color: #A7A2F8; }
+    .num { font-variant-numeric: tabular-nums; }
+  </style>
+</helmet>
+
+<div style="width: 880px; height: 700px; background: #0B0B0D; font-family: Geist, system-ui, sans-serif; color: #F2F2F4; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 26px;">
+
+  <div style="font-family: 'Instrument Serif', Georgia, serif; font-size: 30px; color: #F7F7F9;">Tokens</div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px;">
+    <div style="font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: #8B8B93;">Surfaces</div>
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px;">
+      <div style="display: flex; flex-direction: column; gap: 8px;"><div style="height: 56px; border-radius: 8px; background: #0B0B0D; border: 1px solid #26262C;"></div><div style="font-size: 12px; color: #E4E4E8;">background</div><div class="num" style="font-size: 11px; color: #6E6E78;">#0B0B0D</div></div>
+      <div style="display: flex; flex-direction: column; gap: 8px;"><div style="height: 56px; border-radius: 8px; background: #141417; border: 1px solid #26262C;"></div><div style="font-size: 12px; color: #E4E4E8;">surface</div><div class="num" style="font-size: 11px; color: #6E6E78;">#141417</div></div>
+      <div style="display: flex; flex-direction: column; gap: 8px;"><div style="height: 56px; border-radius: 8px; background: #2A2A2E;"></div><div style="font-size: 12px; color: #E4E4E8;">border</div><div class="num" style="font-size: 11px; color: #6E6E78;">#2A2A2E</div></div>
+      <div style="display: flex; flex-direction: column; gap: 8px;"><div style="height: 56px; border-radius: 8px; background: #F2F2F4;"></div><div style="font-size: 12px; color: #E4E4E8;">foreground</div><div class="num" style="font-size: 11px; color: #6E6E78;">#F2F2F4</div></div>
+      <div style="display: flex; flex-direction: column; gap: 8px;"><div style="height: 56px; border-radius: 8px; background: #8B8B93;"></div><div style="font-size: 12px; color: #E4E4E8;">muted</div><div class="num" style="font-size: 11px; color: #6E6E78;">#8B8B93</div></div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px;">
+    <div style="font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: #8B8B93;">Meaning — and it is the only place colour appears</div>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+      <div style="border: 1px solid #23232A; background: #121216; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 9px;">
+        <div style="height: 32px; border-radius: 6px; background: {{accent}};"></div>
+        <div style="font-size: 12.5px; color: #E4E4E8;">accent</div>
+        <div style="font-size: 11.5px; line-height: 1.45; color: #7A7A84;">Active tab, primary action, focus ring, the selected bar in a chart. Never a data series.</div>
+      </div>
+      <div style="border: 1px solid #23232A; background: #121216; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 9px;">
+        <div style="height: 32px; border-radius: 6px; background: #E0656B;"></div>
+        <div style="font-size: 12.5px; color: #E4E4E8;">over budget</div>
+        <div style="font-size: 11.5px; line-height: 1.45; color: #7A7A84;">Available-to-spend below zero, per §10.4. Paired with a minus sign, never colour alone.</div>
+      </div>
+      <div style="border: 1px solid #23232A; background: #121216; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 9px;">
+        <div style="height: 32px; border-radius: 6px; background: #A69C8D;"></div>
+        <div style="font-size: 12.5px; color: #E4E4E8;">owed</div>
+        <div style="font-size: 11.5px; line-height: 1.45; color: #7A7A84;">Credit-card debt. §10.1 needs it clearly distinguished — the label and its place in the row do that, so the tint stays a warm neutral, not a signal colour.</div>
+      </div>
+      <div style="border: 1px solid #23232A; background: #121216; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 9px;">
+        <div style="height: 32px; border-radius: 6px; background: #5FB8A6;"></div>
+        <div style="font-size: 12.5px; color: #E4E4E8;">trend series</div>
+        <div style="font-size: 11.5px; line-height: 1.45; color: #7A7A84;">The 12-month line. Moved off blue so it cannot be mistaken for the brand accent.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px;">
+    <div style="font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: #8B8B93;">Ordinary amounts get no colour at all</div>
+    <div style="border: 1px solid #23232A; background: #121216; border-radius: 10px; padding: 18px 20px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px;">
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 13px; color: #A0A0A8;">Expense</span><span class="num" style="font-size: 15px; color: #E4E4E8;">−₹320.00</span></div>
+        <div style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 13px; color: #A0A0A8;">Income</span><span class="num" style="font-size: 15px; color: #E4E4E8;">+₹85,000.00</span></div>
+        <div style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 13px; color: #A0A0A8;">Masked balance</span><span class="num" style="font-size: 15px; color: #6E6E78; letter-spacing: 0.02em;">₹xx,xx,xxx</span></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 13px; color: #A0A0A8;">Card, owed</span><span class="num" style="font-size: 15px; color: #E4E4E8;">₹4,820.00 <span style="font-size: 10.5px; letter-spacing: 0.05em; text-transform: uppercase; color: #A69C8D;">owed</span></span></div>
+        <div style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 13px; color: #A0A0A8;">Available, over budget</span><span class="num" style="font-size: 15px; color: #E0656B;">−₹1,240.00</span></div>
+        <div style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 13px; color: #A0A0A8;">Available, normal</span><span class="num" style="font-size: 15px; color: #F7F7F9;">₹9,320.00</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top: auto; font-size: 12px; line-height: 1.5; color: #6E6E78; max-width: 760px;">Every amount shown here is real <span style="color: #A0A0A8;">formatMoney</span> output — Indian grouping, two decimals, minus before the symbol. No card carries a gradient, a glow or a shadow; separation comes from one background step and a hairline.</div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#8B85F5","options":["#8B85F5","#7C9CF5","#A78BFA","#5FB8A6"],"section":"Theme"},"$preview":{"width":880,"height":700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#8B85F5' };
+  }
+}
+</script>
+</body>
+</html>

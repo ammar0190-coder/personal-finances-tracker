@@ -1,0 +1,19 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 390, "h": 844, "title": "Dashboard — phone" },
+    { "file": "QuickAdd.dc.html", "x": 470, "y": 0, "w": 390, "h": 844, "title": "Quick add — sheet" },
+    { "file": "Settings.dc.html", "x": 940, "y": 0, "w": 390, "h": 844, "title": "Account settings" },
+    { "file": "Reports.dc.html", "x": 1410, "y": 0, "w": 390, "h": 844, "title": "Reports — phone" },
+    { "file": "Typography.dc.html", "x": 0, "y": 1010, "w": 880, "h": 620, "title": "Type system" },
+    { "file": "Tokens.dc.html", "x": 960, "y": 1010, "w": 880, "h": 700, "title": "Tokens & colour meaning" },
+    { "file": "Desktop.dc.html", "x": 0, "y": 1850, "w": 1440, "h": 900, "title": "Dashboard — desktop" }
+  ],
+  "annotations": [
+    { "id": "note-hierarchy", "x": 0, "y": -180, "w": 390, "text": "Accounts lead, per PRD §8.\n\nThe date control sits BELOW them on purpose: balances are never range-scoped, so a picker above them would imply it scopes everything." },
+    { "id": "note-quickadd", "x": 470, "y": -180, "w": 390, "text": "The inline form is gone.\n\n\"Add another line\" keeps batch entry first-class — PRD §1 calls lump-sum entry a first-class flow, not an afterthought." },
+    { "id": "note-pin", "x": 940, "y": -180, "w": 390, "text": "The PIN row renders and does nothing.\n\nDashed border, muted, \"Not set up\". No code path touches pin_hash until the security milestone." },
+    { "id": "note-charts", "x": 1410, "y": -180, "w": 390, "text": "Spend by category is ONE measure, so the bars are one hue and rank carries the meaning. Accent marks only the drilled-into bar.\n\nThe trend line moved to teal so it can't be read as the brand colour." },
+    { "id": "note-type", "x": 0, "y": 1690, "w": 880, "text": "Settled: Instrument Serif for headings, Geist for everything operational. Newsreader is gone so this reads as a decision, not an open question." }
+  ],
+  "launch": { "view": "canvas" }
+}

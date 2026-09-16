@@ -20,3 +20,6 @@ test-results/
 
 # claude code
 .claude/settings.local.json
+
+# design canvas build output — regenerated from design/m8/*.dc.html by the design skill
+design/m8/finance-tracker-m8.html
