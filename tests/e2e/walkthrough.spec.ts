@@ -63,7 +63,12 @@ test("new user: onboarding to reports, persisted across reload and re-login", as
   });
 
   await test.step("log income: dropdowns show labels", async () => {
+    // PRD §8's quick-add: the form is not on the dashboard, it opens on demand.
+    // Income is a secondary type, so it lives behind the adjacent menu.
+    await page.getByRole("button", { name: "Other transaction types" }).click();
+    await page.getByRole("menuitem", { name: "Income" }).click();
     const txn = form(page, "Log a transaction");
+    await expect(txn).toBeVisible();
     await pick(txn, "Type", "Income");
     await expect(comboboxValue(txn, "Type")).toHaveText("Income");
     await pick(txn, "Account", "HDFC");
@@ -79,7 +84,10 @@ test("new user: onboarding to reports, persisted across reload and re-login", as
   });
 
   await test.step("log expense against a subcategory", async () => {
+    // Expense is the prominent action — one tap, no menu.
+    await page.getByRole("button", { name: "Add expense" }).click();
     const txn = form(page, "Log a transaction");
+    await expect(txn).toBeVisible();
     await pick(txn, "Type", "Expense");
     await expect(comboboxValue(txn, "Type")).toHaveText("Expense");
     await pick(txn, "Account", "HDFC");

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppShell } from "@/components/shell/app-shell";
 import { getCategoryBreakdown, getMonthlyTrend, getSavingsRateForPeriod } from "@/lib/data/reports";
 import { CategoryBreakdownChart } from "@/components/reports/category-breakdown-chart";
 import { TrendChart } from "@/components/reports/trend-chart";
@@ -40,13 +41,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   ]);
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <header className="flex items-center justify-between">
-        <h1 className="font-heading text-2xl">Reports</h1>
-        <Link href="/" className="text-muted-foreground text-sm underline">
-          ← Dashboard
-        </Link>
-      </header>
+    <AppShell title="Reports">
 
       <Card>
         <CardHeader>
@@ -94,6 +89,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           <p className="text-muted-foreground text-xs">{formatMoney(savings.raw)} moved into savings</p>
         </CardContent>
       </Card>
-    </div>
+    </AppShell>
   );
 }

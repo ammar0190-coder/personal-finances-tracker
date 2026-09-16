@@ -12,7 +12,7 @@ export function MaskedBalance({ value, defaultMasked }: { value: string; default
     <button
       type="button"
       onClick={() => setRevealed((r) => !r)}
-      className={`font-mono text-lg tabular-nums ${negative ? "text-destructive" : ""}`}
+      className={`text-lg tabular-nums ${negative ? "text-destructive" : ""}`}
       title={revealed ? "Tap to hide" : "Tap to reveal"}
     >
       {revealed ? formatMoney(value) : "₹xx,xx,xxx"}

@@ -34,21 +34,21 @@ export async function BurnDown() {
         <p className="text-muted-foreground text-xs">Cycle since {cycle.cycleStart}</p>
         <div className="flex justify-between">
           <span>Budget ceiling this cycle</span>
-          <span className="font-mono">{formatMoney(cycle.transferredIntoSpendAccount)}</span>
+          <span className="tabular-nums">{formatMoney(cycle.transferredIntoSpendAccount)}</span>
         </div>
         <div className="flex justify-between">
           <span>Spent so far</span>
-          <span className="font-mono">{formatMoney(cycle.periodSpend)}</span>
+          <span className="tabular-nums">{formatMoney(cycle.periodSpend)}</span>
         </div>
         {cycle.upcomingRecurringDue !== "0" && (
           <div className="flex justify-between">
             <span>Earmarked (due, unconfirmed)</span>
-            <span className="font-mono">{formatMoney(cycle.upcomingRecurringDue)}</span>
+            <span className="tabular-nums">{formatMoney(cycle.upcomingRecurringDue)}</span>
           </div>
         )}
         <div className={`mt-1 flex justify-between border-t pt-1 font-medium ${negative ? "text-destructive" : ""}`}>
           <span>Available to spend</span>
-          <span className="font-mono">{formatMoney(cycle.availableToSpend)}</span>
+          <span className="tabular-nums">{formatMoney(cycle.availableToSpend)}</span>
         </div>
       </CardContent>
     </Card>

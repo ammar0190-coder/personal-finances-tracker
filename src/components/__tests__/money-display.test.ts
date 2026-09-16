@@ -33,4 +33,21 @@ describe("money display", () => {
   it("never builds a ₹ amount by hand", () => {
     expect(offenders).toEqual([]);
   });
+
+  /**
+   * M8's type contract: amounts are Geist Sans with tabular figures, never a
+   * monospace face. Tabular numerals already give the column alignment mono was
+   * being used for, without the typewriter texture — and a finance app that
+   * sets its figures in mono reads as a terminal, not a ledger.
+   */
+  it("never sets an amount in a monospace face", () => {
+    const mono = uiFiles(srcRoot).flatMap((file) =>
+      readFileSync(file, "utf8")
+        .split("\n")
+        .map((line, i) => ({ line: line.trim(), at: `${path.relative(srcRoot, file)}:${i + 1}` }))
+        .filter(({ line }) => /\bfont-mono\b/.test(line))
+        .map(({ line, at }) => `${at}  ${line}`),
+    );
+    expect(mono).toEqual([]);
+  });
 });

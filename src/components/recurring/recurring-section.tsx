@@ -2,11 +2,11 @@ import { listRecurringTemplates, listDueRecurringTemplates } from "@/lib/data/re
 import { listInstruments } from "@/lib/data/instruments";
 import { AddRecurringForm } from "@/components/recurring/add-recurring-form";
 import { DueRecurringCard } from "@/components/recurring/due-recurring-card";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Account } from "@/lib/data/accounts";
 import type { Category } from "@/lib/data/categories";
 import type { RecurringTemplate } from "@/lib/data/recurring";
 import { formatMoney } from "@/lib/ledger/format";
+import { SECTION_LABEL } from "@/components/shell/section";
 
 export async function RecurringSection({ accounts, categories }: { accounts: Account[]; categories: Category[] }) {
   const [templates, due, instruments] = await Promise.all([
@@ -28,23 +28,19 @@ export async function RecurringSection({ accounts, categories }: { accounts: Acc
   return (
     <>
       {due.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Due now ({due.length})</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
+        <section aria-label="Due now" className="flex flex-col">
+          <h2 className={SECTION_LABEL}>Due now ({due.length})</h2>
+          <div className="mt-3 flex flex-col gap-2">
             {due.map((t) => (
               <DueRecurringCard key={t.id} template={t} subjectName={subjectName(t)} account={accountsById[t.account_id]} />
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recurring items</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+      <section aria-label="Recurring items" className="flex flex-col">
+        <h2 className={SECTION_LABEL}>Recurring items</h2>
+        <div className="mt-3 flex flex-col gap-4">
           {notYetDue.length > 0 && (
             <ul className="flex flex-col gap-1 text-sm">
               {notYetDue.map((t) => (
@@ -65,8 +61,8 @@ export async function RecurringSection({ accounts, categories }: { accounts: Acc
               <AddRecurringForm accounts={accounts} categories={categories} instruments={instruments} />
             </div>
           </details>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </>
   );
 }

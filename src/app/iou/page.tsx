@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppShell } from "@/components/shell/app-shell";
 import { listAccounts } from "@/lib/data/accounts";
 import { listCategories } from "@/lib/data/categories";
 import { listTransactions } from "@/lib/data/transactions";
@@ -27,21 +27,15 @@ export default async function IouPage() {
   const plainExpenses = expenses.filter((t) => t.type === "expense");
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <header className="flex items-center justify-between">
-        <h1 className="font-heading text-2xl">IOU &amp; Reimbursements</h1>
-        <Link href="/" className="text-muted-foreground text-sm underline">
-          ← Dashboard
-        </Link>
-      </header>
+    <AppShell title="IOU &amp; Reimbursements">
 
       <Card>
         <CardContent className="flex justify-between pt-6 text-sm">
           <span>
-            Net owed to you: <span className="font-mono font-medium">{formatMoney(snapshot.netReceivable)}</span>
+            Net owed to you: <span className="tabular-nums font-medium">{formatMoney(snapshot.netReceivable)}</span>
           </span>
           <span>
-            Net you owe: <span className="font-mono font-medium">{formatMoney(snapshot.netPayable)}</span>
+            Net you owe: <span className="tabular-nums font-medium">{formatMoney(snapshot.netPayable)}</span>
           </span>
         </CardContent>
       </Card>
@@ -122,6 +116,6 @@ export default async function IouPage() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </AppShell>
   );
 }

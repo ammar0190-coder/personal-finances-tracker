@@ -24,12 +24,26 @@ const TODAY = new Date().toISOString().slice(0, 10);
 type DraftLine = CreateTransactionInput & { key: string; label: string };
 type TxnType = "expense" | "income" | "transfer";
 
-export function AddTransactionForm({ accounts, categories }: { accounts: Account[]; categories: Category[] }) {
+export function AddTransactionForm({
+  accounts,
+  categories,
+  initialType = "expense",
+  onSaved,
+}: {
+  accounts: Account[];
+  categories: Category[];
+  /** Which type the form opens on — the quick-add menu picks this. A
+   *  transaction's type stays immutable after creation (PRD §12); this only
+   *  chooses the starting point of a new one. */
+  initialType?: TxnType;
+  /** Called after a successful save, so a dialog can close itself. */
+  onSaved?: () => void;
+}) {
   const router = useRouter();
   const accountOptions = toOptions(accounts, (a) => a.name);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [type, setType] = useState<TxnType>("expense");
+  const [type, setType] = useState<TxnType>(initialType);
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [toAccountId, setToAccountId] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -91,6 +105,7 @@ export function AddTransactionForm({ accounts, categories }: { accounts: Account
         await createTransaction(line);
         resetLineFields();
         router.refresh();
+        onSaved?.();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Couldn't log that.");
       }
@@ -118,6 +133,7 @@ export function AddTransactionForm({ accounts, categories }: { accounts: Account
         }
         setBatch([]);
         router.refresh();
+        onSaved?.();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Couldn't save the batch.");
       }

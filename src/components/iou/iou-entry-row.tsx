@@ -78,7 +78,7 @@ export function IouEntryRow({
           <span className="text-muted-foreground ml-2 text-xs">{entry.date_incurred}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="font-mono">
+          <span className="tabular-nums">
             {formatMoney(entry.amount_settled)} / {formatMoney(remaining)}
           </span>
           <Badge variant={entry.status === "settled" ? "default" : entry.status === "written_off" ? "secondary" : "outline"}>

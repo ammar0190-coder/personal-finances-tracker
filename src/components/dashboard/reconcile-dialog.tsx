@@ -115,7 +115,7 @@ export function ReconcileDialog({
                     <span>
                       {t.date} — {t.type}
                     </span>
-                    <span className="font-mono">{formatMoney(t.amount)}</span>
+                    <span className="tabular-nums">{formatMoney(t.amount)}</span>
                   </li>
                 ))}
               </ul>

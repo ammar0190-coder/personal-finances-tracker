@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppShell } from "@/components/shell/app-shell";
 import { listAccountsWithBalances } from "@/lib/data/balances";
 import { listInstruments, listInvestmentHoldingsWithTotals } from "@/lib/data/instruments";
 import { AddInstrumentForm } from "@/components/investments/add-instrument-form";
@@ -31,13 +31,7 @@ export default async function InvestmentsPage() {
   const savingsAccounts = accounts.filter((a) => a.is_savings);
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <header className="flex items-center justify-between">
-        <h1 className="font-heading text-2xl">Investments</h1>
-        <Link href="/" className="text-muted-foreground text-sm underline">
-          ← Dashboard
-        </Link>
-      </header>
+    <AppShell title="Investments">
 
       <Card>
         <CardHeader>
@@ -80,6 +74,6 @@ export default async function InvestmentsPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </AppShell>
   );
 }

@@ -69,7 +69,7 @@ export function CategoryBreakdownChart({ rows }: { rows: CategoryBreakdownRow[] 
               {expandedRow.subcategories.map((s) => (
                 <li key={s.categoryId} className="flex justify-between">
                   <span>{s.name}</span>
-                  <span className="font-mono">{formatMoney(s.amount)}</span>
+                  <span className="tabular-nums">{formatMoney(s.amount)}</span>
                 </li>
               ))}
             </ul>
