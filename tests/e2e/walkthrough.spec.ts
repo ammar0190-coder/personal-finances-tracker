@@ -1,0 +1,231 @@
+/**
+ * A brand-new user, end to end, against the local app and local Supabase:
+ * onboarding, categories, an account, income and expense, the dashboard,
+ * investments, IOU and reports, then persistence across a reload and across
+ * sign-out and sign-in. The fixtures fail any test that reaches hosted
+ * Supabase, lands on the login page unexpectedly, or logs a console error.
+ *
+ * Run: npx supabase start && npm run test:e2e
+ */
+import type { Page, TestInfo } from "@playwright/test";
+import { E2E_SUPABASE_URL, HOSTED_PROJECT_URL, adminClient, assertLocalSupabase } from "./support/local-supabase";
+import { combobox, expect, expectAppPage, expectNoRawIdsInDropdowns, pick, test } from "./support/fixtures";
+
+async function snapshot(page: Page, testInfo: TestInfo, name: string) {
+  await testInfo.attach(name, { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
+}
+
+const RECENT = "Recent transactions";
+
+test.describe("environment safety", () => {
+  test("the guard refuses hosted Supabase URLs", () => {
+    expect(() => assertLocalSupabase("https://abcdefghijklmnopqrst.supabase.co")).toThrow(/Refusing/);
+    expect(() => assertLocalSupabase(E2E_SUPABASE_URL)).not.toThrow();
+  });
+
+  test("the app under test is built against local Supabase", async ({ request }) => {
+    const html = await (await request.get("/auth/login")).text();
+    const scripts = [...new Set(html.match(/\/_next\/static\/[^"]+\.js/g) ?? [])];
+    expect(scripts.length).toBeGreaterThan(0);
+    const bundle = (await Promise.all(scripts.map(async (src) => (await request.get(src)).text()))).join("\n");
+    expect(bundle).toContain(E2E_SUPABASE_URL);
+    expect(bundle).not.toMatch(HOSTED_PROJECT_URL);
+  });
+});
+const LOG = "Log a transaction";
+
+test("new user: onboarding to reports, persisted across reload and re-login", async ({
+  page,
+  user,
+  signIn,
+  guard,
+}, testInfo) => {
+  await signIn(user);
+
+  await test.step("onboarding shows for a user with no accounts", async () => {
+    await page.goto("/");
+    await expectAppPage(page);
+    await expect(page.getByText("Let's set up your accounts")).toBeVisible();
+    await snapshot(page, testInfo, "01-onboarding");
+  });
+
+  await test.step("load starter categories", async () => {
+    await page.getByRole("button", { name: "Load starter categories" }).click();
+    await expect(page.getByText(/categories ready/)).toBeVisible();
+  });
+
+  await test.step("add a spend bank account", async () => {
+    await expect(page.locator('#acc-type [data-slot="select-value"]')).toHaveText("Bank");
+    await page.locator("#acc-name").fill("HDFC");
+    await page.getByText("Spend account").click();
+    await page.getByRole("button", { name: "Add account" }).click();
+    await expect(page.getByText("Accounts", { exact: true })).toBeVisible();
+    await expectAppPage(page);
+  });
+
+  await test.step("log income: dropdowns show labels", async () => {
+    await pick(page, LOG, 0, "Income");
+    await expect(combobox(page, LOG, 0)).toHaveText("Income");
+    await pick(page, LOG, 1, "HDFC");
+    await expect(combobox(page, LOG, 1)).toHaveText("HDFC");
+    await pick(page, LOG, 2, /^Salary/);
+    await expect(combobox(page, LOG, 2)).toHaveText("Salary (blended)");
+    await expectNoRawIdsInDropdowns(page);
+    await snapshot(page, testInfo, "02-income-form-filled");
+
+    await page.locator("#txn-amount").fill("50000");
+    await page.getByRole("button", { name: "Log income now" }).click();
+    await expect(page.getByText("₹50,000.00")).toBeVisible();
+  });
+
+  await test.step("log expense against a subcategory", async () => {
+    await pick(page, LOG, 0, "Expense");
+    await expect(combobox(page, LOG, 0)).toHaveText("Expense");
+    await pick(page, LOG, 1, "HDFC");
+    await pick(page, LOG, 2, "Swiggy/Zomato");
+    await expect(combobox(page, LOG, 2)).toHaveText("Swiggy/Zomato");
+    await expectNoRawIdsInDropdowns(page);
+
+    await page.locator("#txn-amount").fill("450.5");
+    await page.getByRole("button", { name: "Log expense now" }).click();
+    await expect(page.getByText("₹450.50")).toBeVisible();
+  });
+
+  await test.step("database keeps stored values, not labels", async () => {
+    const { data, error } = await adminClient()
+      .from("transactions")
+      .select("type, amount, category:categories(name), account:accounts!transactions_account_id_fkey(name)")
+      .eq("user_id", user.id)
+      .order("amount");
+    expect(error).toBeNull();
+    expect(data).toEqual([
+      { type: "expense", amount: 450.5, category: { name: "Swiggy/Zomato" }, account: { name: "HDFC" } },
+      { type: "income", amount: 50000, category: { name: "Salary" }, account: { name: "HDFC" } },
+    ]);
+    const { data: accounts } = await adminClient().from("accounts").select("account_type").eq("user_id", user.id);
+    expect(accounts).toEqual([{ account_type: "bank" }]);
+  });
+
+  await test.step("dashboard balance is masked, then reveals formatted", async () => {
+    const balance = page.getByRole("button", { name: "₹xx,xx,xxx" });
+    await expect(balance).toBeVisible();
+    await balance.click();
+    await expect(page.getByRole("button", { name: "₹49,549.50" })).toBeVisible();
+    await snapshot(page, testInfo, "03-dashboard");
+  });
+
+  await test.step("transactions survive a reload", async () => {
+    await page.reload();
+    await expectAppPage(page);
+    const recent = page.locator('[data-slot="card"]', { has: page.getByText(RECENT, { exact: true }) });
+    await expect(recent.getByText("₹50,000.00")).toBeVisible();
+    await expect(recent.getByText("₹450.50")).toBeVisible();
+    await expect(recent.getByText("Swiggy/Zomato")).toBeVisible();
+  });
+
+  await test.step("investments: add an instrument and log a contribution", async () => {
+    await page.goto("/investments");
+    await expectAppPage(page);
+    await page.getByText("Add a new instrument").click();
+    await expect(page.getByRole("combobox").filter({ hasText: "Mutual Fund" })).toBeVisible();
+    await page.locator("#inst-name").fill("Nifty Index Fund");
+    await page.getByRole("button", { name: "Add instrument" }).click();
+    const holding = page.getByRole("listitem").filter({ hasText: "Nifty Index Fund" });
+    await expect(holding).toContainText("₹0.00");
+
+    await page.getByText("Log a contribution").click();
+    await expect(page.getByRole("combobox").filter({ hasText: "Nifty Index Fund" })).toBeVisible();
+    // The form defaults to the first account; it must be shown by name.
+    await expect(page.getByRole("combobox").filter({ hasText: "HDFC" })).toBeVisible();
+    await page.locator("#inv-amount").fill("1000");
+    await page.getByRole("button", { name: "Log contribution" }).click();
+    await expect(holding).toContainText("₹1,000.00");
+    await expectNoRawIdsInDropdowns(page);
+    await snapshot(page, testInfo, "04-investments");
+  });
+
+  await test.step("IOU: add a payable", async () => {
+    await page.goto("/iou");
+    await expectAppPage(page);
+    await page.getByRole("tab", { name: /Payables/ }).click();
+    await page.locator("#pay-name").fill("Ravi");
+    await page.locator("#pay-amount").fill("250");
+    await page.getByRole("button", { name: "Add payable" }).click();
+    await expect(page.getByRole("tab", { name: "Payables (1)" })).toBeVisible();
+    await expect(page.getByText("₹0.00 / ₹250.00")).toBeVisible();
+    await expect(page.getByText(/Net you owe:/)).toContainText("₹250.00");
+    await snapshot(page, testInfo, "05-iou");
+  });
+
+  await test.step("reports reflect the logged spend", async () => {
+    await page.goto("/reports");
+    await expectAppPage(page);
+    await expect(page.getByText(/Category breakdown/)).toBeVisible();
+    const chart = page.locator(".recharts-wrapper").first();
+    await expect(chart.getByText("Food", { exact: true })).toBeVisible();
+    await chart.locator(".recharts-rectangle").first().click();
+    const drillDown = page.getByRole("listitem").filter({ hasText: "Swiggy/Zomato" });
+    await expect(drillDown).toContainText("₹450.50");
+    await expect(page.getByText(/moved into savings/)).toContainText("₹0.00");
+    await snapshot(page, testInfo, "06-reports");
+  });
+
+  await test.step("sign out ends the session", async () => {
+    await page.goto("/");
+    await guard.expectingLoginPage(async () => {
+      await page.getByRole("button", { name: "Sign out" }).click();
+      await expect(page).toHaveURL(/\/auth\/login/);
+      await page.goto("/");
+      await expect(page, "signed-out visit to / goes to login").toHaveURL(/\/auth\/login/);
+    });
+  });
+
+  await test.step("signing back in shows the same data", async () => {
+    await page.context().clearCookies();
+    await signIn(user);
+    await page.goto("/");
+    await expectAppPage(page);
+    await expect(page.getByText("₹50,000.00")).toBeVisible();
+    await expect(page.getByText("₹450.50")).toBeVisible();
+    await page.getByRole("button", { name: "₹xx,xx,xxx" }).click();
+    // 50,000 income − 450.50 expense − 1,000 investment; the payable doesn't touch the balance.
+    await expect(page.getByRole("button", { name: "₹48,549.50" })).toBeVisible();
+    await page.goto("/investments");
+    await expect(page.getByRole("listitem").filter({ hasText: "Nifty Index Fund" })).toContainText("₹1,000.00");
+    await page.goto("/iou");
+    await expect(page.getByRole("tab", { name: "Payables (1)" })).toBeVisible();
+    await snapshot(page, testInfo, "07-after-re-login");
+  });
+});
+
+test("the app renders in Geist, not a fallback font", async ({ page, user, signIn }) => {
+  await signIn(user);
+  await page.goto("/");
+  await expectAppPage(page);
+  const font = await page.evaluate(async () => {
+    await document.fonts.ready;
+    const loaded = [...document.fonts].filter((f) => f.status === "loaded").map((f) => f.family.replace(/["']/g, ""));
+    const heading = getComputedStyle(document.querySelector("h1")!).fontFamily;
+    return { body: getComputedStyle(document.body).fontFamily, heading, loaded };
+  });
+  const primary = (family: string) => family.split(",")[0].replace(/["']/g, "").trim();
+  expect(primary(font.body)).toMatch(/Geist/);
+  expect(primary(font.heading)).toMatch(/Geist/);
+  expect(font.loaded).toContain(primary(font.body));
+  expect(font.body).not.toMatch(/^\s*(serif|Times)/i);
+});
+
+test("a signed-out visitor is sent to login", async ({ page, guard }) => {
+  await guard.expectingLoginPage(async () => {
+    await page.goto("/");
+    await expect(page).toHaveURL(/\/auth\/login/);
+    await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
+  });
+});
+
+test("an unexpected redirect to login fails the test", async ({ page }) => {
+  // Deliberately undeclared: the guard fixture must turn this into a failure.
+  test.fail();
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/auth\/login/);
+});
