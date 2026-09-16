@@ -26,6 +26,7 @@ import { CategorySelect } from "@/components/transactions/category-select";
 import type { Account } from "@/lib/data/accounts";
 import type { Category } from "@/lib/data/categories";
 import type { Transaction } from "@/lib/data/transactions";
+import { toOptions } from "@/lib/select-options";
 
 /**
  * PRD §12 "Edit transaction": amount, date, category, account, and note are
@@ -87,7 +88,7 @@ export function EditTransactionDialog({
           {error && <p className="text-destructive text-sm">{error}</p>}
           <div className="grid gap-2">
             <Label>Account</Label>
-            <Select value={accountId} onValueChange={(v) => setAccountId(v ?? accountId)}>
+            <Select items={toOptions(accounts, (a) => a.name)} value={accountId} onValueChange={(v) => setAccountId(v ?? accountId)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

@@ -14,6 +14,7 @@ import { BurnDown } from "@/components/dashboard/burn-down";
 import { IouSnapshot } from "@/components/dashboard/iou-snapshot";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SeedCategoriesButton } from "@/components/onboarding/seed-categories-button";
+import { formatMoney } from "@/lib/ledger/format";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -159,7 +160,7 @@ async function RecentTransactions({
             </div>
             <div className="flex items-center gap-3">
               <span className="text-muted-foreground text-xs">{t.date}</span>
-              <span className="font-mono tabular-nums">₹{t.amount}</span>
+              <span className="font-mono tabular-nums">{formatMoney(t.amount)}</span>
               <TransactionActions transaction={t} accounts={accounts} categories={categories} />
             </div>
           </div>

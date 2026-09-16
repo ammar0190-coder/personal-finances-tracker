@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getIouSnapshot } from "@/lib/data/iou";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatMoney } from "@/lib/ledger/format";
 
 /** PRD §8: IOU snapshot, shown at lower visual priority than balances/burn-down. */
 export async function IouSnapshot() {
@@ -11,7 +12,7 @@ export async function IouSnapshot() {
     <Card className="py-3">
       <CardContent className="flex items-center justify-between px-4 text-xs">
         <Link href="/iou" className="text-muted-foreground hover:text-foreground">
-          IOU: owed to you ₹{snapshot.netReceivable} · you owe ₹{snapshot.netPayable}
+          IOU: owed to you {formatMoney(snapshot.netReceivable)} · you owe {formatMoney(snapshot.netPayable)}
         </Link>
       </CardContent>
     </Card>

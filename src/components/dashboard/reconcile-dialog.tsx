@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { reconcileAccount, type ReconcileResult } from "@/lib/actions/reconciliation";
-import { toMoneyString } from "@/lib/ledger/money";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { Transaction } from "@/lib/data/transactions";
+import { formatMoney } from "@/lib/ledger/format";
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -96,15 +96,15 @@ export function ReconcileDialog({
         ) : result.autoCorreted ? (
           <div className="flex flex-col gap-3 text-sm">
             <p>
-              Delta of ₹{result.delta} — logged automatically as a correcting entry. Tracked was
-              ₹{result.tracked}, now matches the ₹{result.actual} you entered.
+              Delta of {formatMoney(result.delta)} — logged automatically as a correcting entry. Tracked was
+              {formatMoney(result.tracked)}, now matches the {formatMoney(result.actual)} you entered.
             </p>
             <Button onClick={() => handleClose(false)}>Done</Button>
           </div>
         ) : (
           <div className="flex flex-col gap-3 text-sm">
             <p className="text-destructive">
-              Delta of ₹{result.delta} — over the audit threshold. No automatic correction was
+              Delta of {formatMoney(result.delta)} — over the audit threshold. No automatic correction was
               made; review what changed since the last reconciliation, or proceed from memory and
               log a correcting entry yourself (PRD §3).
             </p>
@@ -115,7 +115,7 @@ export function ReconcileDialog({
                     <span>
                       {t.date} — {t.type}
                     </span>
-                    <span className="font-mono">₹{toMoneyString(t.amount)}</span>
+                    <span className="font-mono">{formatMoney(t.amount)}</span>
                   </li>
                 ))}
               </ul>

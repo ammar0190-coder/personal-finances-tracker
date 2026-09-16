@@ -9,6 +9,7 @@ import { IouEntryRow } from "@/components/iou/iou-entry-row";
 import { FlagReimbursementForm } from "@/components/iou/flag-reimbursement-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatMoney } from "@/lib/ledger/format";
 
 /** PRD §7: kept as a fully separate module from the Expense Log. */
 export default async function IouPage() {
@@ -37,10 +38,10 @@ export default async function IouPage() {
       <Card>
         <CardContent className="flex justify-between pt-6 text-sm">
           <span>
-            Net owed to you: <span className="font-mono font-medium">₹{snapshot.netReceivable}</span>
+            Net owed to you: <span className="font-mono font-medium">{formatMoney(snapshot.netReceivable)}</span>
           </span>
           <span>
-            Net you owe: <span className="font-mono font-medium">₹{snapshot.netPayable}</span>
+            Net you owe: <span className="font-mono font-medium">{formatMoney(snapshot.netPayable)}</span>
           </span>
         </CardContent>
       </Card>

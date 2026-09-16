@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { flagExpenseAsReimbursable } from "@/lib/actions/iou";
+import { formatMoney } from "@/lib/ledger/format";
 import { toMoneyString } from "@/lib/ledger/money";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +16,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Transaction } from "@/lib/data/transactions";
+import { toOptions } from "@/lib/select-options";
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
 /** PRD §7/§12 "Flagging an expense as reimbursable" — any expense, any category, after the fact. */
 export function FlagReimbursementForm({ recentExpenses }: { recentExpenses: Transaction[] }) {
   const router = useRouter();
+  const expenseOptions = toOptions(
+    recentExpenses,
+    (t) => `${t.date} — ${formatMoney(t.amount)}${t.note ? ` (${t.note})` : ""}`,
+  );
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [transactionId, setTransactionId] = useState("");
@@ -59,14 +65,14 @@ export function FlagReimbursementForm({ recentExpenses }: { recentExpenses: Tran
       {error && <p className="text-destructive text-sm">{error}</p>}
       <div className="grid gap-2">
         <Label>Which expense</Label>
-        <Select value={transactionId} onValueChange={(v) => setTransactionId(v ?? "")}>
+        <Select items={expenseOptions} value={transactionId} onValueChange={(v) => setTransactionId(v ?? "")}>
           <SelectTrigger>
             <SelectValue placeholder="Choose an expense" />
           </SelectTrigger>
           <SelectContent>
-            {recentExpenses.map((t) => (
-              <SelectItem key={t.id} value={t.id}>
-                {t.date} — ₹{toMoneyString(t.amount)} {t.note ? `(${t.note})` : ""}
+            {expenseOptions.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
               </SelectItem>
             ))}
           </SelectContent>

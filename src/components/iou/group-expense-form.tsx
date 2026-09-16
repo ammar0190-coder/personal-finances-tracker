@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import type { Account } from "@/lib/data/accounts";
 import type { Category } from "@/lib/data/categories";
+import { toOptions } from "@/lib/select-options";
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -23,8 +24,12 @@ export function GroupExpenseForm({ accounts, leisureCategories }: { accounts: Ac
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
-  const [categoryId, setCategoryId] = useState(leisureCategories[0]?.id ?? "");
+  const [pickedAccountId, setAccountId] = useState("");
+  const [pickedCategoryId, setCategoryId] = useState("");
+  // Default to the first option until one is picked; derived so the default
+  // still applies to options that appear after this form mounted.
+  const accountId = pickedAccountId || accounts[0]?.id || "";
+  const categoryId = pickedCategoryId || leisureCategories[0]?.id || "";
   const [totalAmount, setTotalAmount] = useState("");
   const [date, setDate] = useState(TODAY);
   const [note, setNote] = useState("");
@@ -79,9 +84,9 @@ export function GroupExpenseForm({ accounts, leisureCategories }: { accounts: Ac
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
           <Label>Paying account</Label>
-          <Select value={accountId} onValueChange={(v) => setAccountId(v ?? "")}>
+          <Select items={toOptions(accounts, (a) => a.name)} value={accountId} onValueChange={(v) => setAccountId(v ?? "")}>
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue placeholder="Choose an account" />
             </SelectTrigger>
             <SelectContent>
               {accounts.map((a) => (
@@ -100,9 +105,9 @@ export function GroupExpenseForm({ accounts, leisureCategories }: { accounts: Ac
       {leisureCategories.length > 0 && (
         <div className="grid gap-2">
           <Label>Category</Label>
-          <Select value={categoryId} onValueChange={(v) => setCategoryId(v ?? "")}>
+          <Select items={toOptions(leisureCategories, (c) => c.name)} value={categoryId} onValueChange={(v) => setCategoryId(v ?? "")}>
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue placeholder="Choose a category" />
             </SelectTrigger>
             <SelectContent>
               {leisureCategories.map((c) => (

@@ -16,6 +16,8 @@ import {
 import { CategorySelect } from "@/components/transactions/category-select";
 import type { Account } from "@/lib/data/accounts";
 import type { Category } from "@/lib/data/categories";
+import { TRANSACTION_TYPE_OPTIONS, toOptions } from "@/lib/select-options";
+import { formatMoney } from "@/lib/ledger/format";
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -24,6 +26,7 @@ type TxnType = "expense" | "income" | "transfer";
 
 export function AddTransactionForm({ accounts, categories }: { accounts: Account[]; categories: Category[] }) {
   const router = useRouter();
+  const accountOptions = toOptions(accounts, (a) => a.name);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [type, setType] = useState<TxnType>("expense");
@@ -127,20 +130,22 @@ export function AddTransactionForm({ accounts, categories }: { accounts: Account
         {error && <p className="text-destructive text-sm">{error}</p>}
         <div className="grid gap-2">
           <Label>Type</Label>
-          <Select value={type} onValueChange={(v) => setType((v ?? "expense") as TxnType)}>
+          <Select items={TRANSACTION_TYPE_OPTIONS} value={type} onValueChange={(v) => setType((v ?? "expense") as TxnType)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="expense">Expense</SelectItem>
-              <SelectItem value="income">Income</SelectItem>
-              <SelectItem value="transfer">Transfer (e.g. funding your budget)</SelectItem>
+              {TRANSACTION_TYPE_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div className="grid gap-2">
           <Label>{isTransfer ? "From account" : "Account"}</Label>
-          <Select value={accountId} onValueChange={(v) => setAccountId(v ?? "")}>
+          <Select items={accountOptions} value={accountId} onValueChange={(v) => setAccountId(v ?? "")}>
             <SelectTrigger>
               <SelectValue placeholder="Choose an account" />
             </SelectTrigger>
@@ -156,7 +161,7 @@ export function AddTransactionForm({ accounts, categories }: { accounts: Account
         {isTransfer ? (
           <div className="grid gap-2">
             <Label>To account</Label>
-            <Select value={toAccountId} onValueChange={(v) => setToAccountId(v ?? "")}>
+            <Select items={accountOptions} value={toAccountId} onValueChange={(v) => setToAccountId(v ?? "")}>
               <SelectTrigger>
                 <SelectValue placeholder="Choose a destination account" />
               </SelectTrigger>
@@ -227,7 +232,7 @@ export function AddTransactionForm({ accounts, categories }: { accounts: Account
             {batch.map((line) => (
               <li key={line.key} className="flex items-center justify-between text-sm">
                 <span>
-                  {line.label} — ₹{line.amount}
+                  {line.label} — {formatMoney(line.amount)}
                 </span>
                 <button
                   type="button"

@@ -3,10 +3,10 @@ import { listInstruments } from "@/lib/data/instruments";
 import { AddRecurringForm } from "@/components/recurring/add-recurring-form";
 import { DueRecurringCard } from "@/components/recurring/due-recurring-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toMoneyString } from "@/lib/ledger/money";
 import type { Account } from "@/lib/data/accounts";
 import type { Category } from "@/lib/data/categories";
 import type { RecurringTemplate } from "@/lib/data/recurring";
+import { formatMoney } from "@/lib/ledger/format";
 
 export async function RecurringSection({ accounts, categories }: { accounts: Account[]; categories: Category[] }) {
   const [templates, due, instruments] = await Promise.all([
@@ -53,7 +53,7 @@ export async function RecurringSection({ accounts, categories }: { accounts: Acc
                     {subjectName(t)} — {accountsById[t.account_id]?.name ?? "?"} ({t.frequency})
                   </span>
                   <span className="text-muted-foreground">
-                    ₹{toMoneyString(t.amount)} · next {t.next_due_date}
+                    {formatMoney(t.amount)} · next {t.next_due_date}
                   </span>
                 </li>
               ))}

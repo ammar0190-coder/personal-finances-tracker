@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ACCOUNT_TYPE_OPTIONS } from "@/lib/select-options";
 
 export function AddAccountForm({ onDone }: { onDone?: () => void }) {
   const router = useRouter();
@@ -78,13 +79,16 @@ export function AddAccountForm({ onDone }: { onDone?: () => void }) {
       </div>
       <div className="grid gap-2">
         <Label htmlFor="acc-type">Account type</Label>
-        <Select value={accountType} onValueChange={(v) => setAccountType(v as "bank" | "credit_card")}>
+        <Select items={ACCOUNT_TYPE_OPTIONS} value={accountType} onValueChange={(v) => setAccountType(v as "bank" | "credit_card")}>
           <SelectTrigger id="acc-type">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="bank">Bank</SelectItem>
-            <SelectItem value="credit_card">Credit card</SelectItem>
+            {ACCOUNT_TYPE_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

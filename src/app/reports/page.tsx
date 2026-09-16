@@ -3,6 +3,7 @@ import { getCategoryBreakdown, getMonthlyTrend, getSavingsRateForPeriod } from "
 import { CategoryBreakdownChart } from "@/components/reports/category-breakdown-chart";
 import { TrendChart } from "@/components/reports/trend-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatMoney } from "@/lib/ledger/format";
 
 type Window = "weekly" | "monthly" | "all-time";
 
@@ -90,7 +91,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           ) : (
             <p className="text-2xl font-semibold">{(Number(savings.rate) * 100).toFixed(1)}%</p>
           )}
-          <p className="text-muted-foreground text-xs">₹{savings.raw} moved into savings</p>
+          <p className="text-muted-foreground text-xs">{formatMoney(savings.raw)} moved into savings</p>
         </CardContent>
       </Card>
     </div>

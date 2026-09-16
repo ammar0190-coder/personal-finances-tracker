@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Decimal } from "decimal.js";
 import type { InstrumentWithTotals } from "@/lib/data/instruments";
+import { formatMoney } from "@/lib/ledger/format";
 
 const VEHICLE_LABELS: Record<string, string> = {
   equity: "Equity",
@@ -49,14 +50,14 @@ export function HoldingsList({ holdings }: { holdings: InstrumentWithTotals[] })
                   {h.symbol ? ` · ${h.symbol}${h.exchange ? `:${h.exchange}` : ""}` : ""}
                 </span>
               </span>
-              <span className="font-mono tabular-nums">₹{h.totalInvested}</span>
+              <span className="font-mono tabular-nums">{formatMoney(h.totalInvested)}</span>
             </li>
           ))}
         </ul>
       )}
       <div className="flex justify-between border-t pt-2 text-sm font-medium">
         <span>Total invested (selected)</span>
-        <span className="font-mono">₹{total.toString()}</span>
+        <span className="font-mono">{formatMoney(total)}</span>
       </div>
     </div>
   );

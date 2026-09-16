@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import type { Account } from "@/lib/data/accounts";
 import type { Instrument } from "@/lib/data/instruments";
+import { toOptions } from "@/lib/select-options";
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -23,7 +24,11 @@ export function LogInvestmentForm({ accounts, instruments }: { accounts: Account
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [instrumentId, setInstrumentId] = useState(instruments[0]?.id ?? "");
+  const [pickedInstrumentId, setInstrumentId] = useState("");
+  // Default to the first instrument until one is picked. Derived rather than
+  // stored so it still applies when the first instrument is added after this
+  // form mounted (the list starts empty for a new user).
+  const instrumentId = pickedInstrumentId || instruments[0]?.id || "";
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [amount, setAmount] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -56,9 +61,9 @@ export function LogInvestmentForm({ accounts, instruments }: { accounts: Account
       {error && <p className="text-destructive text-sm">{error}</p>}
       <div className="grid gap-2">
         <Label>Instrument</Label>
-        <Select value={instrumentId} onValueChange={(v) => setInstrumentId(v ?? "")}>
+        <Select items={toOptions(instruments, (i) => i.name)} value={instrumentId} onValueChange={(v) => setInstrumentId(v ?? "")}>
           <SelectTrigger>
-            <SelectValue />
+            <SelectValue placeholder="Choose an instrument" />
           </SelectTrigger>
           <SelectContent>
             {instruments.map((i) => (
@@ -71,7 +76,7 @@ export function LogInvestmentForm({ accounts, instruments }: { accounts: Account
       </div>
       <div className="grid gap-2">
         <Label>From account</Label>
-        <Select value={accountId} onValueChange={(v) => setAccountId(v ?? "")}>
+        <Select items={toOptions(accounts, (a) => a.name)} value={accountId} onValueChange={(v) => setAccountId(v ?? "")}>
           <SelectTrigger>
             <SelectValue placeholder="Choose an account" />
           </SelectTrigger>

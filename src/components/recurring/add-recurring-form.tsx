@@ -17,6 +17,7 @@ import { CategorySelect } from "@/components/transactions/category-select";
 import type { Account } from "@/lib/data/accounts";
 import type { Category } from "@/lib/data/categories";
 import type { Instrument } from "@/lib/data/instruments";
+import { FREQUENCY_OPTIONS, recurringKindOptions, toOptions } from "@/lib/select-options";
 
 const TODAY = new Date().toISOString().slice(0, 10);
 type Kind = "expense" | "income" | "investment";
@@ -32,12 +33,18 @@ export function AddRecurringForm({
   instruments?: Instrument[];
 }) {
   const router = useRouter();
+  const kindOptions = recurringKindOptions(instruments.length > 0);
+  const accountOptions = toOptions(accounts, (a) => a.name);
+  const instrumentOptions = toOptions(instruments, (i) => i.name);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [kind, setKind] = useState<Kind>("expense");
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [categoryId, setCategoryId] = useState("");
-  const [instrumentId, setInstrumentId] = useState(instruments[0]?.id ?? "");
+  const [pickedInstrumentId, setInstrumentId] = useState("");
+  // Default to the first instrument until one is picked; derived so it holds
+  // for instruments added after this form mounted.
+  const instrumentId = pickedInstrumentId || instruments[0]?.id || "";
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<"monthly" | "quarterly" | "annual" | "custom">("monthly");
   const [customIntervalDays, setCustomIntervalDays] = useState("");
@@ -73,20 +80,22 @@ export function AddRecurringForm({
       {error && <p className="text-destructive text-sm">{error}</p>}
       <div className="grid gap-2">
         <Label>Kind</Label>
-        <Select value={kind} onValueChange={(v) => setKind((v ?? "expense") as Kind)}>
+        <Select items={kindOptions} value={kind} onValueChange={(v) => setKind((v ?? "expense") as Kind)}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="expense">Recurring expense</SelectItem>
-            <SelectItem value="income">Recurring income (e.g. Salary)</SelectItem>
-            {instruments.length > 0 && <SelectItem value="investment">SIP (recurring investment)</SelectItem>}
+            {kindOptions.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
       <div className="grid gap-2">
         <Label>Account</Label>
-        <Select value={accountId} onValueChange={(v) => setAccountId(v ?? "")}>
+        <Select items={accountOptions} value={accountId} onValueChange={(v) => setAccountId(v ?? "")}>
           <SelectTrigger>
             <SelectValue placeholder="Choose an account" />
           </SelectTrigger>
@@ -102,7 +111,7 @@ export function AddRecurringForm({
       {isInvestment ? (
         <div className="grid gap-2">
           <Label>Instrument</Label>
-          <Select value={instrumentId} onValueChange={(v) => setInstrumentId(v ?? "")}>
+          <Select items={instrumentOptions} value={instrumentId} onValueChange={(v) => setInstrumentId(v ?? "")}>
             <SelectTrigger>
               <SelectValue placeholder="Choose an instrument" />
             </SelectTrigger>
@@ -140,15 +149,16 @@ export function AddRecurringForm({
       </div>
       <div className="grid gap-2">
         <Label>Frequency</Label>
-        <Select value={frequency} onValueChange={(v) => setFrequency((v ?? "monthly") as typeof frequency)}>
+        <Select items={FREQUENCY_OPTIONS} value={frequency} onValueChange={(v) => setFrequency((v ?? "monthly") as typeof frequency)}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="monthly">Monthly</SelectItem>
-            <SelectItem value="quarterly">Quarterly</SelectItem>
-            <SelectItem value="annual">Annual</SelectItem>
-            <SelectItem value="custom">Custom interval</SelectItem>
+            {FREQUENCY_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

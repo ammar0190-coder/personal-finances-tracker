@@ -1,11 +1,13 @@
 import { getCurrentBudgetCycle } from "@/lib/data/dashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatMoney } from "@/lib/ledger/format";
 
 /** PRD §8/§10.4: spend burn-down for the current budget cycle. */
 export async function BurnDown() {
   const cycle = await getCurrentBudgetCycle();
 
-  if (!cycle || !cycle.cycleStart) {
+  // availableToSpend is only null when there is no cycle yet.
+  if (!cycle || !cycle.cycleStart || cycle.availableToSpend === null) {
     return (
       <Card>
         <CardHeader>
@@ -32,21 +34,21 @@ export async function BurnDown() {
         <p className="text-muted-foreground text-xs">Cycle since {cycle.cycleStart}</p>
         <div className="flex justify-between">
           <span>Budget ceiling this cycle</span>
-          <span className="font-mono">₹{cycle.transferredIntoSpendAccount}</span>
+          <span className="font-mono">{formatMoney(cycle.transferredIntoSpendAccount)}</span>
         </div>
         <div className="flex justify-between">
           <span>Spent so far</span>
-          <span className="font-mono">₹{cycle.periodSpend}</span>
+          <span className="font-mono">{formatMoney(cycle.periodSpend)}</span>
         </div>
         {cycle.upcomingRecurringDue !== "0" && (
           <div className="flex justify-between">
             <span>Earmarked (due, unconfirmed)</span>
-            <span className="font-mono">₹{cycle.upcomingRecurringDue}</span>
+            <span className="font-mono">{formatMoney(cycle.upcomingRecurringDue)}</span>
           </div>
         )}
         <div className={`mt-1 flex justify-between border-t pt-1 font-medium ${negative ? "text-destructive" : ""}`}>
           <span>Available to spend</span>
-          <span className="font-mono">₹{cycle.availableToSpend}</span>
+          <span className="font-mono">{formatMoney(cycle.availableToSpend)}</span>
         </div>
       </CardContent>
     </Card>

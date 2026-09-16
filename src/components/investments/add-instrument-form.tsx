@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { VEHICLE_TYPE_OPTIONS } from "@/lib/select-options";
 
 export function AddInstrumentForm() {
   const router = useRouter();
@@ -46,14 +47,16 @@ export function AddInstrumentForm() {
       {error && <p className="text-destructive text-sm">{error}</p>}
       <div className="grid gap-2">
         <Label>Vehicle type</Label>
-        <Select value={vehicleType} onValueChange={(v) => setVehicleType((v ?? "mutual_fund") as typeof vehicleType)}>
+        <Select items={VEHICLE_TYPE_OPTIONS} value={vehicleType} onValueChange={(v) => setVehicleType((v ?? "mutual_fund") as typeof vehicleType)}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="equity">Equity</SelectItem>
-            <SelectItem value="mutual_fund">Mutual Fund</SelectItem>
-            <SelectItem value="ppf">PPF</SelectItem>
+            {VEHICLE_TYPE_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

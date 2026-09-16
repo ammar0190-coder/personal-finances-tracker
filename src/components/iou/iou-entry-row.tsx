@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/select";
 import type { IouEntry } from "@/lib/data/iou";
 import type { Account } from "@/lib/data/accounts";
+import { toOptions } from "@/lib/select-options";
+import { formatMoney } from "@/lib/ledger/format";
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -77,7 +79,7 @@ export function IouEntryRow({
         </div>
         <div className="flex items-center gap-2">
           <span className="font-mono">
-            ₹{toMoneyString(entry.amount_settled)} / ₹{remaining}
+            {formatMoney(entry.amount_settled)} / {formatMoney(remaining)}
           </span>
           <Badge variant={entry.status === "settled" ? "default" : entry.status === "written_off" ? "secondary" : "outline"}>
             {entry.status}
@@ -90,7 +92,7 @@ export function IouEntryRow({
           {recording ? (
             <>
               <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-24" />
-              <Select value={accountId} onValueChange={(v) => setAccountId(v ?? "")}>
+              <Select items={toOptions(accounts, (a) => a.name)} value={accountId} onValueChange={(v) => setAccountId(v ?? "")}>
                 <SelectTrigger className="w-36">
                   <SelectValue placeholder="Account" />
                 </SelectTrigger>

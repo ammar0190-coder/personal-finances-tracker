@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { CATEGORICAL_COLORS } from "@/lib/charts/colors";
 import type { CategoryBreakdownRow } from "@/lib/data/reports";
+import { formatMoney } from "@/lib/ledger/format";
 
 /**
  * PRD §9: category breakdown chart + subcategory drill-down (tap a
@@ -18,7 +19,7 @@ export function CategoryBreakdownChart({ rows }: { rows: CategoryBreakdownRow[] 
     return <p className="text-muted-foreground text-sm">No spend logged for this period.</p>;
   }
 
-  const chartData = rows.map((r) => ({ name: r.name, amount: Number(r.amount), categoryId: r.categoryId }));
+  const chartData = rows.map((r) => ({ name: r.name, amount: Number(r.amount), amountExact: r.amount, categoryId: r.categoryId }));
   const expandedRow = rows.find((r) => r.categoryId === expanded);
 
   return (
@@ -37,7 +38,8 @@ export function CategoryBreakdownChart({ rows }: { rows: CategoryBreakdownRow[] 
               tickLine={false}
             />
             <Tooltip
-              formatter={(value) => [`₹${value ?? 0}`, "Spend"]}
+              // Plotted as a number for position only; the tooltip shows the exact amount.
+              formatter={(_value, _name, item) => [formatMoney(item.payload.amountExact), "Spend"]}
               contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", fontSize: 12 }}
             />
             <Bar
@@ -67,7 +69,7 @@ export function CategoryBreakdownChart({ rows }: { rows: CategoryBreakdownRow[] 
               {expandedRow.subcategories.map((s) => (
                 <li key={s.categoryId} className="flex justify-between">
                   <span>{s.name}</span>
-                  <span className="font-mono">₹{s.amount}</span>
+                  <span className="font-mono">{formatMoney(s.amount)}</span>
                 </li>
               ))}
             </ul>
