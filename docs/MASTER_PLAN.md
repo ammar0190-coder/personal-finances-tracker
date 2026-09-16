@@ -11,8 +11,14 @@ through `superpowers:writing-plans` first, per `CLAUDE.md`.
 
 **M0 through M6 are done and verified**, live, against real Supabase (not mocked) — every PRD
 MVP feature (§2-§13) is now built and covered by an automated test that actually runs against
-Postgres. **M7 (Deploy) is the only thing left, and it's entirely blocked on Ammar** — see that
-milestone's own note and `docs/HANDOFF_USER.md`.
+Postgres. **M7 is effectively done:** the app is live at
+`https://personal-finances-tracker-px1n.vercel.app`, and real Google sign-in and data entry work
+there (2026-09-16). Its one open item is a phone "Add to Home Screen" check, which only Ammar can
+do. **Next is M8, a visual design pass**: the app works but looks unfinished.
+
+Pipeline as of 2026-09-16: lint, `tsc` and build clean. 115 unit, 31 live integration and 8 pgTAP
+database tests pass, plus a 6-test Playwright E2E suite against local Supabase
+(`npm run test:e2e`, D-15).
 
 The core money-math library (`src/lib/ledger/`) is complete for everything specified in PRD §10 —
 balance, spend, available-to-spend, savings tracking, IOU settlement recompute, recurring
@@ -147,14 +153,69 @@ since one series needs no legend.
 2000 to 1500 after a refund dated in February is logged against the January expense — checked by
 re-running the same report query, not by asserting on a cached number.
 
-### M7 — Deploy — **blocked on Ammar, not started**
+### M7 — Deploy — **DONE except the phone-install check**
 
-Vercel deployment, PWA/service worker for "add to home screen" (§14). Needs a real GitHub repo
-(pushed), a real Supabase project (not local Docker), a real Google OAuth client, and a Vercel
-account connected to that repo — none of which Claude Code can create. See
-`docs/HANDOFF_USER.md`. Once those exist, this is mostly configuration (env vars in Vercel,
-`next-pwa`/Workbox setup) rather than new application code — everything M0-M6 built is
-platform-agnostic already.
+Two separable halves, and only one of them ever needed Ammar.
+
+**Done — the PWA (§14), commit `883ad02`.** `app/manifest.ts`, a hand-written service worker
+(`public/sw.js`) with an explicit cache policy, an offline fallback page, generated icons
+(192/512/maskable, via `scripts/generate-icons.mjs`), and client-side registration. Four unit
+test files cover it: manifest shape, the SW cache policy, registration, and the proxy matcher
+(`src/proxy.ts` had to stop intercepting the SW and manifest paths — that's the `src/proxy.ts`
+change in the same commit). Decision recorded in `docs/DECISIONS.md`.
+
+**Done 2026-09-16 — the deploy.** Ammar restored the auto-paused Supabase project, pushed the
+schema (over a phone hotspot, because his home network blocks outbound Postgres ports), imported
+the repo into Vercel with the three env vars, and pointed the Google OAuth redirect URLs at the new
+domain. `./scripts/deploy-wizard.sh` walks all of these steps.
+
+**Found and fixed on the live site:** the first Google sign-in happened before the schema existed,
+so the account had no `public.users` row and every write failed. A backfill migration
+(`20260916120000`, D-12) fixed it and was pushed to hosted.
+
+**Exit test.** Real Google OAuth round-trip against the deployed site: **passed** (signed in,
+onboarding rendered). **Not yet confirmed by Ammar:** that "Load starter categories" now works on
+the live site after the backfill (it does locally and in E2E), and "Add to Home Screen" on a real
+phone.
+
+### Post-MVP polish (2026-09-16) — **DONE**
+
+Not a PRD milestone; these are fixes for problems Ammar hit on the live site. All three were
+written test-first:
+- every dropdown shows a label, never a UUID or raw enum value (D-14);
+- the self-referencing `--font-sans` token, which made the whole app render in a serif fallback,
+  is fixed;
+- one money formatter (`₹50,000.00`, Indian grouping) is used for every displayed amount (D-13).
+
+The session also made the Playwright E2E suite permanent (D-15).
+
+### M8 — Visual design pass — **NEXT, not started**
+
+Ammar's verdict on the live site: it "looks quite sloppy… AI slop". The PRD specifies only
+"Tailwind CSS + shadcn/ui" (§14) and gives no visual direction, so **this milestone starts with
+design decisions, not code**. Route through `superpowers:brainstorming`, then the `design` skill
+(a mockup canvas Ammar can tweak by hand), before implementing anything.
+
+Observed problems, from this session's screenshot review:
+- **Hierarchy.** The dashboard is one long column of equal-weight cards: accounts, burn-down,
+  recurring, a full transaction form, categories, recent transactions. PRD §8 ranks balances and
+  burn-down first and the IOU snapshot lower; the layout doesn't reflect that.
+- **Navigation.** Page links are small underlined text ("Investments →"). There is no app shell,
+  no active state, and no mobile navigation, although the app is meant to run as an installed PWA
+  on a phone (§14).
+- **Forms dominate.** The full "Log a transaction" form sits inline on the dashboard. PRD §8 asks
+  for a quick-add; a sheet or dialog would fit better.
+- **Type and colour.** The default shadcn neutral grey everywhere, no brand colour, amounts in
+  widely spaced Geist Mono. The negative/positive colouring of amounts needs a design decision.
+- **Raw values still shown:** the account type under account names ("bank") and IOU status
+  badges ("pending").
+- **Small defects:** an empty header gap in the IOU summary card; greyed-out disabled buttons
+  that look broken; bare "Nothing logged yet" empty states; dark-mode tokens exist but there's no
+  toggle to reach them.
+- **Onboarding** is one card with a bare button and a raw form.
+
+Exit test (proposal): a design reviewed and approved by Ammar in the canvas; the implemented
+screens match it at phone and desktop widths; E2E suite and screenshot review stay green.
 
 ## What's deliberately not here
 

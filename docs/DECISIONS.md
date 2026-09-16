@@ -289,3 +289,154 @@ alone, but there would be no offline page, and phase-2 offline logging needs a w
 **Would change our mind.** Phase-2 offline logging + sync (§15) means real background sync,
 request queueing and conflict handling. That is where a library earns its keep — revisit then,
 and treat this worker as the thing it replaces rather than something to extend indefinitely.
+
+## D-12: A migration backfills `public.users` for auth users that never got a profile
+
+> DRAFT — written 2026-09-16, awaiting Ammar's read.
+
+**Date** 2026-09-16
+**Milestone** M7 (`supabase/migrations/20260916120000_backfill_missing_user_profiles.sql`)
+
+**What happened.** On the hosted project, Ammar signed in with Google *before* the first
+`db push`. `public.users` is written only by the `on_auth_user_created` trigger, which didn't
+exist yet, so his auth user had no profile row. Every app table's `user_id` references
+`public.users`, so every write failed with `categories_user_id_fkey`. The user saw it as a
+generic Next.js "This page couldn't load" on "Load starter categories". Reproduced locally by
+disabling the trigger, inserting an auth user, then inserting a category (FK violation, 23503).
+
+**Chosen because** a migration is recorded, reproducible, and fixes any database in the same
+state, where a one-off SQL Editor paste fixes only one. The logic lives in
+`private.backfill_missing_user_profiles()`: PostgREST doesn't expose `private`, and execute is
+revoked from `public`, `anon` and `authenticated`, so no client can call it. It only inserts,
+writes exactly the identity fields `handle_new_user()` writes, never overwrites an existing
+profile, and is safe to re-run. Pushed to hosted 2026-09-16. Covered by the pgTAP test
+`supabase/tests/backfill_user_profiles.test.sql` (8 assertions), run with `npm run test:db`.
+
+**Why `npm run test:db` uses psql, not `supabase test db`.** `supabase test db` hung. It also
+connects as `postgres`, which can't disable a trigger on `auth.users` ("must be owner"). The test
+must recreate the missing-profile state, so `scripts/test-db.sh` runs it as `supabase_admin`
+inside a transaction that is rolled back.
+
+**Rejected alternatives.** Pasting into the SQL Editor (no migration history, not reproducible);
+having the app create the profile lazily on first request (spreads a schema invariant across app
+code and every data path); pointing the FKs at `auth.users` instead of `public.users` (a schema
+redesign to fix a one-time ordering problem).
+
+**Would change our mind.** If profile creation ever needs more than the trigger's identity
+fields (e.g. a timezone chosen at onboarding), the backfill and the trigger should share one
+function instead of two copies of the same `coalesce` expressions.
+
+## D-13: One money formatter — ₹, two decimals, Indian digit grouping, half-up
+
+> DRAFT — written 2026-09-16, awaiting Ammar's read.
+
+**Date** 2026-09-16
+**Milestone** post-MVP polish (`src/lib/ledger/format.ts`)
+
+**What was wrong.** The UI built amounts by hand (`₹{t.amount}`) in 22 places, so Ammar saw
+`₹450.5` and `₹50000`. There was no formatter at all.
+
+**Chosen because** every displayed amount should look the same, so `formatMoney` is now the only
+way to show one: `₹` prefix, always two decimals, minus sign before the symbol (`-₹450.50`), never
+a negative zero, and half-up rounding to paise through `Decimal` (`Number#toFixed` turns 2.675
+into 2.67). A plain number is treated as a PostgREST numeric and converted to `Decimal` through
+`toMoneyString`, per D-7. The formatter only affects display; its output is never used in
+arithmetic.
+
+**Indian grouping** (`₹12,34,567.00`) rather than Western (`₹1,234,567.00`): the app is
+rupee-denominated, and its privacy mask already uses the Indian shape (`₹xx,xx,xxx`). The two
+agree below ₹1,00,000, including Ammar's example `₹50,000.00`. **Ammar hasn't explicitly
+confirmed this choice.** Switching to Western grouping is a one-line change in `groupIndian()`.
+
+**Charts** still plot `Number(amount)`, because Recharts needs numbers to position marks. Each
+data point also carries its original exact string, and the tooltips format that.
+
+**Enforced by** `src/lib/ledger/__tests__/format.test.ts` (behaviour) and
+`src/components/__tests__/money-display.test.ts`, which fails on any `₹{…}` or `` `₹${…}` `` in UI
+source.
+
+**Rejected alternatives.** `Intl.NumberFormat("en-IN")` (takes a float, and support for exact
+decimal strings varies by runtime); formatting at each call site (how the 22 inconsistencies
+happened).
+
+**Would change our mind.** Multi-currency accounts; the formatter would then need a currency
+argument.
+
+## D-14: Dropdowns declare their labels; an unpicked dropdown falls back to the first option
+
+> DRAFT — written 2026-09-16, awaiting Ammar's read.
+
+**Date** 2026-09-16
+**Milestone** post-MVP polish (`src/lib/select-options.ts`)
+
+**What was wrong.** Base UI's `Select` shows the raw *value* in the closed trigger unless the
+root is given `items`. All 17 dropdowns in the app showed UUIDs (`407bf0fd-…` for an account) or
+raw enum values (`expense`, `bank`, `mutual_fund`).
+
+**Chosen because** each dropdown now uses one `{ value, label }` list for both `items` (what the
+trigger shows) and its `<SelectItem>`s (what the open list shows), so the two can't drift apart.
+The fixed lists (`TRANSACTION_TYPE_OPTIONS`, `ACCOUNT_TYPE_OPTIONS`, `VEHICLE_TYPE_OPTIONS`,
+`FREQUENCY_OPTIONS`, `recurringKindOptions`) are typed against the generated DB enums, and tests
+check they match `Constants.public.Enums` exactly, so stored values can't change by accident.
+Two tests check that the submitted value is unchanged: the SSR test reads the hidden input, and
+the E2E walkthrough reads the saved rows back from Postgres.
+
+**Also changed, found by the E2E walkthrough.** The Investments "Instrument" box stayed *blank*
+after a new user added their first instrument. The form's `useState(instruments[0]?.id)` ran
+while the list was still empty and never re-ran, so "Log contribution" stayed disabled. The
+investment, recurring and group-expense forms now store only the user's explicit pick and derive
+the selection as `picked || options[0]?.id || ""`. Dropdowns that can be empty also got a
+placeholder prompt.
+
+**Enforced by** `src/components/__tests__/select-labels.test.tsx`. It server-renders each form
+and compares the trigger text with the submitted value. It also scans the source and fails on any
+`<Select>` without `items`; that scan is needed because the IOU repayment and edit-dialog
+dropdowns only render after a click.
+
+**Not done.** Two places that aren't dropdowns still print stored enum values: the account type
+under each account name ("bank") and IOU status badges ("pending").
+
+**Would change our mind.** If Base UI changes how `items` resolves labels, or a dropdown needs
+rich (non-string) option content.
+
+## D-15: E2E tests run against local Supabase only, on their own dev server
+
+> DRAFT — written 2026-09-16, awaiting Ammar's read.
+
+**Date** 2026-09-16
+**Milestone** post-MVP polish (`playwright.config.ts`, `tests/e2e/`)
+
+**The hazard.** Ammar's local env file currently points at the **hosted** project; it held
+local values when D-6 was written. A test that reused `npm run dev`, or read
+`NEXT_PUBLIC_SUPABASE_*`, would read and write real financial data.
+
+**Chosen because** isolation is enforced in layers, not left to convention:
+1. The suite never reads `NEXT_PUBLIC_SUPABASE_*`. It uses its own `E2E_SUPABASE_*` variables,
+   which default to the fixed local keys, and `assertLocalSupabase()` rejects any host that isn't
+   on this machine. The check runs when the config loads, in global setup, and before every admin
+   client is created.
+2. Playwright always starts its own `next dev` on port 3100 (`reuseExistingServer: false`),
+   passing the local values as environment variables, which override the env file. The app reads
+   only `NEXT_PUBLIC_SUPABASE_URL` and `…_PUBLISHABLE_KEY`, so this fully redirects it.
+3. Next 16 won't run a second dev server from the same build dir. `next.config.ts` therefore
+   reads `distDir` from `NEXT_DIST_DIR` (default `.next`; unset on Vercel), and the suite sets it
+   to `.next-e2e`. Next then adds `.next-e2e/…/types` to `tsconfig.json` by itself; those two
+   lines are expected.
+4. The browser context aborts any `*.supabase.co` request and fails the test.
+5. A test fetches the app's JS bundle and asserts it contains the local URL and no real hosted
+   project URL. A real URL is matched by its 20-character project ref, because supabase-js ships
+   sample hosts like `xyzcompany.supabase.co` in its comments.
+
+Every test also fails on a browser console error, or on landing on `/auth/login` when the test
+didn't declare it. A `test.fail()` test proves that this guard really does fail a test.
+
+**Auth in tests.** Real sign-in is Google-only, so tests create a password user on local
+Supabase and give the browser the same cookies `@supabase/ssr` writes. The profile row still
+comes from the real `on_auth_user_created` trigger. Each test deletes its user afterwards.
+
+**Rejected alternatives.** `NODE_ENV=test`, so Next skips the local env file (`next dev` forces
+`development`); reusing an existing dev server (the hazard above); a production `next build`
+into a separate dir (slower, and it bakes env values in at build time; revisit for CI).
+
+**Would change our mind.** A CI pipeline; a production build per run would then be worth the
+time.
