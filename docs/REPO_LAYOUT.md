@@ -58,6 +58,7 @@ personal-finances-tracker/
 │   │   ├── layout.tsx
 │   │   ├── __tests__/                # theme-fonts: every --font-* token resolves to a next/font
 │   │   ├── page.tsx                  # Dashboard (and onboarding, inline, when accounts = 0)
+│   │   ├── layout.tsx                # fonts (Geist + Instrument Serif), dark as default
 │   │   ├── auth/
 │   │   │   ├── login/page.tsx
 │   │   │   ├── callback/route.ts     # OAuth code exchange
@@ -66,10 +67,11 @@ personal-finances-tracker/
 │   │   ├── iou/page.tsx              # §7 — Receivables/Payables/Reimbursements tabs
 │   │   └── reports/page.tsx          # §9
 │   ├── components/
+│   │   ├── shell/                    # app-shell, app-nav (bottom bar / sidebar), section labels
 │   │   ├── ui/                       # shadcn/ui primitives (Base UI underneath, not Radix)
 │   │   ├── auth/                     # login-form, logout-button
 │   │   ├── onboarding/               # add-account-form, seed-categories-button
-│   │   ├── transactions/             # add/edit forms, category-select (grouped, §4), actions
+│   │   ├── transactions/             # add/edit forms, quick-add (§8), category-select, actions
 │   │   ├── accounts/, categories/    # deactivate buttons (soft-delete, §3/§4)
 │   │   ├── recurring/                # add form, due-now confirm card, list section
 │   │   ├── investments/              # add-instrument, log-contribution, holdings-list (filters)
@@ -85,21 +87,26 @@ personal-finances-tracker/
 │   │   │   ├── format.ts             # formatMoney — the only way an amount is displayed (D-13)
 │   │   │   └── __tests__/            # unit tests, no DB needed
 │   │   ├── supabase/                 # client.ts, server.ts, proxy.ts
-│   │   ├── select-options.ts         # { value, label } lists for every dropdown (D-14)
+│   │   ├── select-options.ts         # dropdown options (D-14) + display labels (D-20)
 │   │   ├── __tests__/                # select-options unit tests
-│   │   ├── charts/colors.ts          # dataviz-skill-validated categorical/sequential colors
+│   │   ├── charts/colors.ts          # single-hue bars + accent, teal trend (D-19)
+│   │   ├── charts/__tests__/         # ties the hex constants to the CSS tokens (D-19)
 │   │   ├── data/                     # read-only Supabase queries, mapped into ledger/ shapes
 │   │   │   └── __tests__/            # 7 live integration test files, real Postgres required
 │   │   └── actions/                  # "use server" mutations (create/edit/delete/confirm/etc.)
 │   └── types/
 │       └── database.ts               # generated via `supabase gen types typescript --local`
+├── design/m8/                        # M8 canvas artboards (*.dc.html + canvas.json).
+│                                     # The seeded .html is a 2.5MB build output, gitignored.
+├── docs/superpowers/specs/           # design specs: the M8 visual spec and the range audit
 ├── package.json
 ├── tsconfig.json
 └── vitest.config.mts
 ```
 
-**All of PRD §2-§13 is built** (M0-M6, `docs/MASTER_PLAN.md`). Only M7 (Deploy) remains, blocked
-on Ammar's own setup (`docs/HANDOFF_USER.md`).
+**Most of PRD §2–§13 is built** (M0–M7), and M8a/M8b have reskinned it. Three §8/§2 items remain
+unbuilt and are M8c's scope: the Dashboard date-range control, privacy-mode configuration, and the
+PIN. See `docs/MASTER_PLAN.md`.
 
 ## What each doc is for
 

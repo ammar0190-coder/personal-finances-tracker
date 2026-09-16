@@ -21,15 +21,22 @@ code against the PRD. Each has schema support but no UI, which is why they went 
 | §2, §8 Settings | Privacy-mode configuration | `users.privacy_mode_enabled` exists and masking works, but nothing can change the setting — there is no Account Settings page at all. |
 | §2, §8 Settings | PIN quick-unlock | `users.pin_hash` exists; no UI, no hashing, no unlock flow. |
 
-All three are folded into M8. An earlier version of this file claimed every PRD MVP feature
-(§2–§13) was built; that was wrong, and the claim is corrected here rather than quietly dropped. **M7 is effectively done:** the app is live at
+All three are folded into **M8c**, and none of them is built yet. An earlier version of this file
+claimed every PRD MVP feature (§2–§13) was built; that was wrong, and the claim is corrected here
+rather than quietly dropped.
+
+**M7 is effectively done:** the app is live at
 `https://personal-finances-tracker-px1n.vercel.app`, and real Google sign-in and data entry work
 there (2026-09-16). Its one open item is a phone "Add to Home Screen" check, which only Ammar can
-do. **Next is M8, a visual design pass**: the app works but looks unfinished.
+do.
 
-Pipeline as of 2026-09-16: lint, `tsc` and build clean. 115 unit, 31 live integration and 8 pgTAP
-database tests pass, plus a 6-test Playwright E2E suite against local Supabase
-(`npm run test:e2e`, D-15).
+**M8a and M8b are done** (2026-09-16): the app has a design system, an app shell, a restructured
+Dashboard, quick-add, and every module screen reskinned. **M8c is next** — Account Settings, the
+theme toggle and the date-range control, which is the same list as the three gaps above.
+
+Pipeline as of 2026-09-16, all green: lint, `tsc` and build clean; 163 unit, 31 live integration
+and 8 pgTAP database tests pass, plus a 6-test Playwright E2E suite against local Supabase
+(`npm run test:e2e`, D-15). The secret scan is clean.
 
 The core money-math library (`src/lib/ledger/`) is complete for everything specified in PRD §10 —
 balance, spend, available-to-spend, savings tracking, IOU settlement recompute, recurring
@@ -200,7 +207,7 @@ written test-first:
 
 The session also made the Playwright E2E suite permanent (D-15).
 
-### M8 — Visual design pass — **NEXT, not started**
+### M8 — Visual design pass — **M8a and M8b done; M8c next**
 
 Ammar's verdict on the live site: it "looks quite sloppy… AI slop". The PRD specifies only
 "Tailwind CSS + shadcn/ui" (§14) and gives no visual direction, so **this milestone starts with
@@ -225,8 +232,38 @@ Observed problems, from this session's screenshot review:
   toggle to reach them.
 - **Onboarding** is one card with a bare button and a raw form.
 
-Exit test (proposal): a design reviewed and approved by Ammar in the canvas; the implemented
-screens match it at phone and desktop widths; E2E suite and screenshot review stay green.
+Exit test: a design reviewed and approved by Ammar in the canvas; the implemented screens match
+it at phone and desktop widths; E2E suite and screenshot review stay green.
+
+**Design settled 2026-09-16**, spec at `docs/superpowers/specs/2026-09-16-m8-visual-design-design.md`,
+canvas artboards in `design/m8/`. Instrument Serif for display headings with Geist everywhere
+else; near-black ground with a restrained indigo accent; colour reserved for exceptions, giving
+exactly three meanings; accounts as a ledger, not a card; charts analytical, not decorative.
+
+#### M8a — design system, shell, Dashboard, quick-add — **DONE**
+
+Tokens and typography (Instrument Serif via `next/font`, dark as the default theme, tabular
+figures replacing the monospace amounts), the app shell (bottom bar on phones, sidebar on desktop,
+active state carried by `aria-current` as well as colour), the Dashboard restructured to the
+approved hierarchy with the burn-down as its only card, and quick-add replacing the inline
+transaction form while keeping batch entry.
+
+Before any of it, the Playwright walkthrough was made resilient — selectors moved from "the Nth
+combobox inside the card titled X" to role, label and landmark — which was mostly a real
+accessibility fix, since the select triggers had no accessible name at all.
+
+#### M8b — module screens, onboarding, auth, defects — **DONE**
+
+Investments, IOU, Reports, onboarding and auth on the new system, with no cards on module pages
+(D-17). All six recorded defects cleared. Two bugs found that were not on the list: the chart
+colour constants had drifted from the CSS so the trend line was still the blue M8a removed (D-19),
+and `transaction_type` display labels were missing for the four types no one picks (D-20).
+
+#### M8c — Settings, theme toggle, date-range control — **NEXT**
+
+The two remaining PRD §8 surfaces plus the toggle. The date-range control is bound by D-16: it
+scopes period figures only, and must not become a global Dashboard filter. The PIN row renders
+inert, with no `pin_hash` path and a static assertion enforcing it (D-18).
 
 ## What's deliberately not here
 

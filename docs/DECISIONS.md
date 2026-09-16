@@ -440,3 +440,159 @@ into a separate dir (slower, and it bakes env values in at build time; revisit f
 
 **Would change our mind.** A CI pipeline; a production build per run would then be worth the
 time.
+
+---
+
+## D-16: The Dashboard date range scopes period figures only — five kinds, not two
+
+> DRAFT — written 2026-09-16, awaiting Ammar's read.
+
+**Date** 2026-09-16
+**Milestone** M8 (`docs/superpowers/specs/2026-09-16-m8-dashboard-range-audit.md`)
+
+**The ambiguity.** PRD §8 says a custom range makes "the whole view recalculate", and also that
+account balances are shown per account. Read literally, the first sentence scopes the second.
+
+**The audit found five kinds of figure on the Dashboard, not the two the PRD implies:**
+
+| Kind | Example | Scoped by the range? |
+|---|---|---|
+| Position | account balance, net IOU | **No** — true as of now |
+| Range | spend for the window | Yes |
+| Cycle | budget ceiling, available-to-spend | Bounds come from the transfer log, not the picker |
+| Today | recurring "due now", earmarked | **No** — relative to the current date |
+| Feed | recent activity | **No** — a fixed count of latest rows |
+
+**Chosen, with the three PRD gaps resolved:**
+
+1. **The IOU snapshot stays a position.** `getIouSnapshot()` computes
+   `amount_owed − amount_settled` with no date filter. Scoping that to a past window would mix a
+   historical owed amount against today's settled amount and produce a figure describing no
+   moment in time — wrong, but plausible-looking. IOU activity within a window, if ever wanted,
+   belongs in Reports (§9).
+2. **Recent activity stays a feed of the latest 15.** §8 says "the latest log entries"; "latest"
+   is the operative word. A date picker must not silently turn a recent-activity feed into a
+   period query.
+3. **A non-cycle range changes the block's shape**, rather than showing the same shape with
+   degraded numbers: spend and income for the window, with no ceiling, no earmarking, no
+   available-to-spend and **no progress bar** — a progress bar with no denominator is a lie.
+   Blank fields were rejected for reading as "data missing"; hiding the block was rejected for
+   discarding the period information the picker exists to expose.
+
+**The consequence worth stating plainly:** most of the Dashboard is not period data. The control
+scopes exactly one figure — spend-so-far, and only when the window is not the current cycle.
+
+**The model this produces**, in Ammar's words: accounts are where I stand now; IOUs are where I
+stand now; recent activity is what happened most recently; the selected period is what happened
+during this window; the cycle is what I can spend against right now.
+
+**Guarded by** `src/app/__tests__/dashboard-scope.test.ts`, which asserts balances are fetched
+without a period, recent activity is a `limit`-based query with no date bound, and the Dashboard
+never imports investments data.
+
+---
+
+## D-17: Cards are a Dashboard device, not a container for anything computed
+
+> DRAFT — written 2026-09-16, awaiting Ammar's read.
+
+**Date** 2026-09-16
+**Milestone** M8a/M8b
+
+**The question.** M8a established that the burn-down is the only card on the Dashboard — it is
+the one computed block among recorded facts. M8b then had to reskin Reports, where category
+breakdown, trend and savings rate are *all* computed, so "computed gets a card" would have
+produced three boxes.
+
+**Chosen: no cards on module pages at all.** Sections, hairlines and typography carry the
+structure everywhere; the card stays a Dashboard-only device meaning "the one computed block
+among recorded facts". Exactly one `Card` import remains in the app, in
+`src/components/dashboard/burn-down.tsx`, which makes the rule greppable.
+
+**Rejected:** cards for computed blocks (Reports becomes three boxes while every other page is
+card-free — the inconsistency the redesign existed to remove) and cards where they group forms
+(preserves the generic-dashboard language that prompted M8).
+
+**Also settled under the same principle:** credit-card debt is distinguished by a warm-neutral
+`owed` label and its position in the row, never a signal colour, keeping the palette to exactly
+three meanings — accent for interaction, red for an exceptional state, neutral for ordinary
+information.
+
+---
+
+## D-18: M8 does not implement PIN authentication, and a test enforces the boundary
+
+> DRAFT — written 2026-09-16, awaiting Ammar's read.
+
+**Date** 2026-09-16
+**Milestone** M8 (deferred to a later security milestone)
+
+**The hazard.** PRD §2 lists a quick-unlock PIN as MVP and `users.pin_hash` exists in the schema,
+so M8's Settings screen is the obvious place to "just add it". But a PIN compared on the client
+exposes its own hash, and four digits is ten thousand combinations, broken offline immediately.
+Doing it properly needs server-side verification, a real hashing dependency and rate limiting.
+
+**Chosen.** M8 does not implement PIN authentication. The Settings row is a visibly inactive "Not
+set up" surface only. M8 must not read, write, hash, validate, or otherwise interact with
+`pin_hash`. No PIN setup, unlock, or verification flow exists until the later security milestone,
+routed through the `security-review` skill.
+
+**Enforced by a static assertion over runtime source**, not by a behavioural test: a behavioural
+test only proves today's UI does not happen to call it, whereas the static check fails if anyone
+wires the row up. The assertion deliberately ignores `src/types/database.ts` (the generated schema
+mirror, which already contains `pin_hash`), the defining migration, and prose — a test that is red
+before any work begins gets deleted rather than obeyed.
+
+**Not yet written**: the assertion lands with the Settings screen in M8c.
+
+---
+
+## D-19: Chart colours exist twice, and a test ties the copies together
+
+> DRAFT — written 2026-09-16, awaiting Ammar's read.
+
+**Date** 2026-09-16
+**Milestone** M8b
+
+**The bug this records.** Chart colours live as CSS custom properties in `globals.css` *and* as
+plain hex in `src/lib/charts/colors.ts`, because Recharts renders SVG presentation attributes,
+which do not reliably resolve `var()`. In M8a the CSS moved the 12-month trend line to teal to
+stop it colliding with the indigo brand accent — and the JS constant was not updated. Recharts
+renders from the JS value, so **the line stayed the exact blue the change existed to remove**, and
+M8a's colour test did not catch it because it only read the stylesheet.
+
+**Chosen.** Keep both copies — the Recharts constraint is real — and tie them together with
+`src/lib/charts/__tests__/colors.test.ts`, which asserts the JS constants equal the corresponding
+dark-theme tokens.
+
+**Also settled here:** spend-by-category is a **single-hue** ranked bar chart, not a categorical
+one. It plots one measure, so rank and bar length already carry the comparison; a hue per category
+encodes identity that position states better and competes with the accent. The accent is reserved
+for the bar being drilled into. This replaces the six-hue categorical palette M6 built, and
+`CATEGORICAL_COLORS` is gone.
+
+---
+
+## D-20: A dropdown's options and an enum's display labels are different sets
+
+> DRAFT — written 2026-09-16, awaiting Ammar's read.
+
+**Date** 2026-09-16
+**Milestone** M8b
+
+**The bug this records.** `transaction_type` holds seven values, but the type dropdown
+deliberately offers three — `investment`, `refund`, `iou_repayment` and `iou_settlement` are
+created by their own flows and never chosen by a person. D-14 centralised dropdown labels, which
+made it look as though every enum was covered. It was not: the Dashboard's recent-activity feed
+renders a transaction's type whenever it has no category, which is **exactly** when those four
+appear, so an IOU repayment displayed as the raw string `iou_repayment`.
+
+**Chosen.** `TRANSACTION_TYPE_OPTIONS` stays the deliberate three-value dropdown subset, and a
+separate `TRANSACTION_TYPE_LABELS` covers all seven for display. `IOU_STATUS_OPTIONS` is added for
+the same reason — status is recomputed, never picked, so it was never in a dropdown and never had
+a label, which is why `pending` leaked to the UI. `labelFor()` falls back to the raw value rather
+than rendering nothing: a blank cell hides the problem.
+
+**Guarded by** `src/lib/__tests__/enum-labels.test.ts`, which checks each label set against the
+generated `Constants` block in `src/types/database.ts` — so adding a value to a database enum
+fails the test until it has a label.
