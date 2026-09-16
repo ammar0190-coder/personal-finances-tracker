@@ -29,7 +29,7 @@ export default async function IouPage() {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
       <header className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">IOU &amp; Reimbursements</h1>
+        <h1 className="font-heading text-2xl">IOU &amp; Reimbursements</h1>
         <Link href="/" className="text-muted-foreground text-sm underline">
           ← Dashboard
         </Link>

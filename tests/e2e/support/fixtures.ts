@@ -1,4 +1,4 @@
-import { test as base, expect, type Page } from "@playwright/test";
+import { test as base, expect, type Locator, type Page } from "@playwright/test";
 import { HOSTED_SUPABASE, createTestUser, deleteTestUser, sessionCookies, type TestUser } from "./local-supabase";
 
 export interface AppGuard {
@@ -82,21 +82,47 @@ export async function expectAppPage(page: Page) {
   await expect(page.getByText("Unhandled Runtime Error")).toHaveCount(0);
 }
 
-/** Pick an option in the Nth dropdown inside the card titled `cardTitle`. */
-export async function pick(page: Page, cardTitle: string, index: number, option: string | RegExp) {
-  const card = page.locator('[data-slot="card"]', { has: page.getByText(cardTitle, { exact: true }) });
-  await card.getByRole("combobox").nth(index).click();
+/**
+ * The dropdown whose accessible name is `name` — i.e. the one its visible
+ * <Label htmlFor> points at.
+ *
+ * Deliberately not "the Nth combobox inside the card titled X": that broke the
+ * moment a card was renamed, reordered or replaced by a sheet, which is exactly
+ * what M8 does. A label is what the user reads, so it is what the test asks for.
+ */
+export function combobox(scope: Page | Locator, name: string | RegExp) {
+  return scope.getByRole("combobox", { name });
+}
+
+/**
+ * A form by its accessible name. Forms carry `aria-label` so a field can be
+ * scoped to the form that owns it — the dashboard has two "Amount" fields, and
+ * naming the form is what keeps them apart without reaching for an id.
+ */
+export function form(page: Page, name: string | RegExp) {
+  return page.getByRole("form", { name });
+}
+
+/** Pick `option` in the dropdown labelled `name`. */
+export async function pick(scope: Page | Locator, name: string | RegExp, option: string | RegExp) {
+  const page = "page" in scope ? scope.page() : scope;
+  await combobox(scope, name).click();
   await page.getByRole("option", { name: option }).first().click();
   await expect(page.getByRole("listbox")).toHaveCount(0);
 }
 
-/** The label shown in the Nth closed dropdown inside the card titled `cardTitle`. */
-export function combobox(page: Page, cardTitle: string, index: number) {
-  return page
-    .locator('[data-slot="card"]', { has: page.getByText(cardTitle, { exact: true }) })
-    .getByRole("combobox")
-    .nth(index)
-    .locator('[data-slot="select-value"]');
+/** The label text currently shown in the closed dropdown labelled `name`. */
+export function comboboxValue(scope: Page | Locator, name: string | RegExp) {
+  return combobox(scope, name).locator('[data-slot="select-value"]');
+}
+
+/**
+ * A named region of a page — the app marks these with `<section aria-label>`,
+ * so the test asks for the landmark rather than for `[data-slot="card"]`.
+ * A card becoming a plain list (M8) leaves the region intact.
+ */
+export function region(page: Page, name: string | RegExp) {
+  return page.getByRole("region", { name });
 }
 
 /** Every visible closed dropdown shows a label, never a raw UUID. */

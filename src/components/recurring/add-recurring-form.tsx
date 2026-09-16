@@ -76,7 +76,7 @@ export function AddRecurringForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} aria-label="Add a recurring item" className="flex flex-col gap-4">
       {error && <p className="text-destructive text-sm">{error}</p>}
       <div className="grid gap-2">
         <Label>Kind</Label>

@@ -38,7 +38,10 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-title"
       className={cn(
-        "font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",
+        // No font-weight utility: --font-heading is Instrument Serif, which ships a
+        // single 400 weight, so a heavier request would be synthesised and smear.
+        // Section headings take their emphasis from size instead.
+        "font-heading text-[1.0625rem] leading-snug group-data-[size=sm]/card:text-sm",
         className
       )}
       {...props}

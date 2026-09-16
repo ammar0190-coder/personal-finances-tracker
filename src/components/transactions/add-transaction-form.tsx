@@ -126,12 +126,12 @@ export function AddTransactionForm({ accounts, categories }: { accounts: Account
 
   return (
     <div className="flex flex-col gap-4">
-      <form onSubmit={handleLogNow} className="flex flex-col gap-4">
+      <form onSubmit={handleLogNow} aria-label="Log a transaction" className="flex flex-col gap-4">
         {error && <p className="text-destructive text-sm">{error}</p>}
         <div className="grid gap-2">
-          <Label>Type</Label>
+          <Label htmlFor="txn-type">Type</Label>
           <Select items={TRANSACTION_TYPE_OPTIONS} value={type} onValueChange={(v) => setType((v ?? "expense") as TxnType)}>
-            <SelectTrigger>
+            <SelectTrigger id="txn-type">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -144,9 +144,9 @@ export function AddTransactionForm({ accounts, categories }: { accounts: Account
           </Select>
         </div>
         <div className="grid gap-2">
-          <Label>{isTransfer ? "From account" : "Account"}</Label>
+          <Label htmlFor="txn-account">{isTransfer ? "From account" : "Account"}</Label>
           <Select items={accountOptions} value={accountId} onValueChange={(v) => setAccountId(v ?? "")}>
-            <SelectTrigger>
+            <SelectTrigger id="txn-account">
               <SelectValue placeholder="Choose an account" />
             </SelectTrigger>
             <SelectContent>
@@ -160,9 +160,9 @@ export function AddTransactionForm({ accounts, categories }: { accounts: Account
         </div>
         {isTransfer ? (
           <div className="grid gap-2">
-            <Label>To account</Label>
+            <Label htmlFor="txn-to-account">To account</Label>
             <Select items={accountOptions} value={toAccountId} onValueChange={(v) => setToAccountId(v ?? "")}>
-              <SelectTrigger>
+              <SelectTrigger id="txn-to-account">
                 <SelectValue placeholder="Choose a destination account" />
               </SelectTrigger>
               <SelectContent>
@@ -178,8 +178,9 @@ export function AddTransactionForm({ accounts, categories }: { accounts: Account
           </div>
         ) : (
           <div className="grid gap-2">
-            <Label>Category</Label>
+            <Label htmlFor="txn-category">Category</Label>
             <CategorySelect
+              id="txn-category"
               categories={categories}
               kind={type === "income" ? "income" : "expense"}
               value={categoryId}

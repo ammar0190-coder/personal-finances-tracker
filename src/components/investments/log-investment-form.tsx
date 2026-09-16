@@ -57,12 +57,12 @@ export function LogInvestmentForm({ accounts, instruments }: { accounts: Account
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} aria-label="Log a contribution" className="flex flex-col gap-4">
       {error && <p className="text-destructive text-sm">{error}</p>}
       <div className="grid gap-2">
-        <Label>Instrument</Label>
+        <Label htmlFor="inv-instrument">Instrument</Label>
         <Select items={toOptions(instruments, (i) => i.name)} value={instrumentId} onValueChange={(v) => setInstrumentId(v ?? "")}>
-          <SelectTrigger>
+          <SelectTrigger id="inv-instrument">
             <SelectValue placeholder="Choose an instrument" />
           </SelectTrigger>
           <SelectContent>
@@ -75,9 +75,9 @@ export function LogInvestmentForm({ accounts, instruments }: { accounts: Account
         </Select>
       </div>
       <div className="grid gap-2">
-        <Label>From account</Label>
+        <Label htmlFor="inv-account">From account</Label>
         <Select items={toOptions(accounts, (a) => a.name)} value={accountId} onValueChange={(v) => setAccountId(v ?? "")}>
-          <SelectTrigger>
+          <SelectTrigger id="inv-account">
             <SelectValue placeholder="Choose an account" />
           </SelectTrigger>
           <SelectContent>

@@ -34,7 +34,7 @@ export function PayableForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} aria-label="Add a payable" className="flex flex-col gap-4">
       {error && <p className="text-destructive text-sm">{error}</p>}
       <div className="grid gap-2">
         <Label htmlFor="pay-name">Who fronted it</Label>

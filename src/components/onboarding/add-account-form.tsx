@@ -53,7 +53,7 @@ export function AddAccountForm({ onDone }: { onDone?: () => void }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} aria-label="Add an account" className="flex flex-col gap-4">
       {error && <p className="text-destructive text-sm">{error}</p>}
       <div className="grid gap-2">
         <Label htmlFor="acc-name">Name</Label>

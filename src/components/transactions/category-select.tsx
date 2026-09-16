@@ -23,17 +23,20 @@ export function CategorySelect({
   kind,
   value,
   onChange,
+  id,
 }: {
   categories: Category[];
   kind: "expense" | "income";
   value: string;
   onChange: (categoryId: string) => void;
+  /** Associates the caller's <Label htmlFor> with the trigger, giving it an accessible name. */
+  id?: string;
 }) {
   const groups = categoryOptions(categories, kind);
 
   return (
     <Select items={groups} value={value} onValueChange={(v) => onChange(v ?? "")}>
-      <SelectTrigger>
+      <SelectTrigger id={id}>
         <SelectValue placeholder="Choose a category" />
       </SelectTrigger>
       <SelectContent>

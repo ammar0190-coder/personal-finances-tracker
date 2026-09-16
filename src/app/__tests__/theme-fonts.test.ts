@@ -29,16 +29,27 @@ function resolve(token: string, seen: string[] = []): string {
 describe("theme font tokens", () => {
   it("parses the theme and layout (guards against the test silently checking nothing)", () => {
     expect([...themeFonts.keys()]).toEqual(expect.arrayContaining(["--font-sans", "--font-mono", "--font-heading"]));
-    expect(nextFontVariables).toEqual(new Set(["--font-geist-sans", "--font-geist-mono"]));
+    expect(nextFontVariables).toEqual(
+      new Set(["--font-geist-sans", "--font-geist-mono", "--font-instrument-serif"]),
+    );
   });
 
   it.each(["--font-sans", "--font-mono", "--font-heading"])("%s resolves to a next/font variable", (token) => {
     expect(nextFontVariables).toContain(resolve(token));
   });
 
-  it("sans and heading use Geist Sans, mono uses Geist Mono", () => {
+  /**
+   * M8's typography contract: Instrument Serif sets display headings, Geist
+   * does everything operational. Headings deliberately do NOT share the body
+   * face — that split is the point, not an oversight.
+   */
+  it("headings use Instrument Serif, body uses Geist Sans, mono uses Geist Mono", () => {
+    expect(resolve("--font-heading")).toBe("--font-instrument-serif");
     expect(resolve("--font-sans")).toBe("--font-geist-sans");
-    expect(resolve("--font-heading")).toBe("--font-geist-sans");
     expect(resolve("--font-mono")).toBe("--font-geist-mono");
+  });
+
+  it("the display serif is a different face from the body face", () => {
+    expect(resolve("--font-heading")).not.toBe(resolve("--font-sans"));
   });
 });

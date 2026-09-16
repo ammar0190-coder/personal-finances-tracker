@@ -43,12 +43,12 @@ export function AddInstrumentForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} aria-label="Add an instrument" className="flex flex-col gap-4">
       {error && <p className="text-destructive text-sm">{error}</p>}
       <div className="grid gap-2">
-        <Label>Vehicle type</Label>
+        <Label htmlFor="inst-vehicle">Vehicle type</Label>
         <Select items={VEHICLE_TYPE_OPTIONS} value={vehicleType} onValueChange={(v) => setVehicleType((v ?? "mutual_fund") as typeof vehicleType)}>
-          <SelectTrigger>
+          <SelectTrigger id="inst-vehicle">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

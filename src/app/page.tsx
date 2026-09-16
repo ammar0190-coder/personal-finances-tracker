@@ -36,7 +36,7 @@ export default async function DashboardPage() {
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Personal Finance Tracker</h1>
+          <h1 className="font-heading text-2xl">Personal Finance Tracker</h1>
           <p className="text-muted-foreground text-sm">{profile?.name ?? user?.email}</p>
         </div>
         <div className="flex items-center gap-4">
@@ -74,6 +74,7 @@ export default async function DashboardPage() {
         </Card>
       ) : (
         <>
+          <section aria-label="Accounts">
           <Card>
             <CardHeader>
               <CardTitle>Accounts</CardTitle>
@@ -90,6 +91,7 @@ export default async function DashboardPage() {
               </details>
             </CardContent>
           </Card>
+          </section>
 
           <BurnDown />
 
@@ -143,6 +145,7 @@ async function RecentTransactions({
   const categoriesById = Object.fromEntries(categories.map((c) => [c.id, c.name]));
 
   return (
+    <section aria-label="Recent transactions">
     <Card>
       <CardHeader>
         <CardTitle>Recent transactions</CardTitle>
@@ -167,5 +170,6 @@ async function RecentTransactions({
         ))}
       </CardContent>
     </Card>
+    </section>
   );
 }

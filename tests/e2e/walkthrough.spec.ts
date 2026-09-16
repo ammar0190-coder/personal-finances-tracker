@@ -9,13 +9,12 @@
  */
 import type { Page, TestInfo } from "@playwright/test";
 import { E2E_SUPABASE_URL, HOSTED_PROJECT_URL, adminClient, assertLocalSupabase } from "./support/local-supabase";
-import { combobox, expect, expectAppPage, expectNoRawIdsInDropdowns, pick, test } from "./support/fixtures";
+import { comboboxValue, expect, expectAppPage, expectNoRawIdsInDropdowns, form, pick, region, test } from "./support/fixtures";
 
 async function snapshot(page: Page, testInfo: TestInfo, name: string) {
   await testInfo.attach(name, { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
 }
 
-const RECENT = "Recent transactions";
 
 test.describe("environment safety", () => {
   test("the guard refuses hosted Supabase URLs", () => {
@@ -32,7 +31,6 @@ test.describe("environment safety", () => {
     expect(bundle).not.toMatch(HOSTED_PROJECT_URL);
   });
 });
-const LOG = "Log a transaction";
 
 test("new user: onboarding to reports, persisted across reload and re-login", async ({
   page,
@@ -55,38 +53,41 @@ test("new user: onboarding to reports, persisted across reload and re-login", as
   });
 
   await test.step("add a spend bank account", async () => {
-    await expect(page.locator('#acc-type [data-slot="select-value"]')).toHaveText("Bank");
-    await page.locator("#acc-name").fill("HDFC");
+    const accountForm = form(page, "Add an account");
+    await expect(comboboxValue(accountForm, "Account type")).toHaveText("Bank");
+    await accountForm.getByLabel("Name", { exact: true }).fill("HDFC");
     await page.getByText("Spend account").click();
     await page.getByRole("button", { name: "Add account" }).click();
-    await expect(page.getByText("Accounts", { exact: true })).toBeVisible();
+    await expect(region(page, "Accounts")).toBeVisible();
     await expectAppPage(page);
   });
 
   await test.step("log income: dropdowns show labels", async () => {
-    await pick(page, LOG, 0, "Income");
-    await expect(combobox(page, LOG, 0)).toHaveText("Income");
-    await pick(page, LOG, 1, "HDFC");
-    await expect(combobox(page, LOG, 1)).toHaveText("HDFC");
-    await pick(page, LOG, 2, /^Salary/);
-    await expect(combobox(page, LOG, 2)).toHaveText("Salary (blended)");
+    const txn = form(page, "Log a transaction");
+    await pick(txn, "Type", "Income");
+    await expect(comboboxValue(txn, "Type")).toHaveText("Income");
+    await pick(txn, "Account", "HDFC");
+    await expect(comboboxValue(txn, "Account")).toHaveText("HDFC");
+    await pick(txn, "Category", /^Salary/);
+    await expect(comboboxValue(txn, "Category")).toHaveText("Salary (blended)");
     await expectNoRawIdsInDropdowns(page);
     await snapshot(page, testInfo, "02-income-form-filled");
 
-    await page.locator("#txn-amount").fill("50000");
+    await txn.getByLabel("Amount").fill("50000");
     await page.getByRole("button", { name: "Log income now" }).click();
     await expect(page.getByText("₹50,000.00")).toBeVisible();
   });
 
   await test.step("log expense against a subcategory", async () => {
-    await pick(page, LOG, 0, "Expense");
-    await expect(combobox(page, LOG, 0)).toHaveText("Expense");
-    await pick(page, LOG, 1, "HDFC");
-    await pick(page, LOG, 2, "Swiggy/Zomato");
-    await expect(combobox(page, LOG, 2)).toHaveText("Swiggy/Zomato");
+    const txn = form(page, "Log a transaction");
+    await pick(txn, "Type", "Expense");
+    await expect(comboboxValue(txn, "Type")).toHaveText("Expense");
+    await pick(txn, "Account", "HDFC");
+    await pick(txn, "Category", "Swiggy/Zomato");
+    await expect(comboboxValue(txn, "Category")).toHaveText("Swiggy/Zomato");
     await expectNoRawIdsInDropdowns(page);
 
-    await page.locator("#txn-amount").fill("450.5");
+    await txn.getByLabel("Amount").fill("450.5");
     await page.getByRole("button", { name: "Log expense now" }).click();
     await expect(page.getByText("₹450.50")).toBeVisible();
   });
@@ -117,7 +118,7 @@ test("new user: onboarding to reports, persisted across reload and re-login", as
   await test.step("transactions survive a reload", async () => {
     await page.reload();
     await expectAppPage(page);
-    const recent = page.locator('[data-slot="card"]', { has: page.getByText(RECENT, { exact: true }) });
+    const recent = region(page, "Recent transactions");
     await expect(recent.getByText("₹50,000.00")).toBeVisible();
     await expect(recent.getByText("₹450.50")).toBeVisible();
     await expect(recent.getByText("Swiggy/Zomato")).toBeVisible();
@@ -127,17 +128,19 @@ test("new user: onboarding to reports, persisted across reload and re-login", as
     await page.goto("/investments");
     await expectAppPage(page);
     await page.getByText("Add a new instrument").click();
-    await expect(page.getByRole("combobox").filter({ hasText: "Mutual Fund" })).toBeVisible();
-    await page.locator("#inst-name").fill("Nifty Index Fund");
+    const instrumentForm = form(page, "Add an instrument");
+    await expect(comboboxValue(instrumentForm, "Vehicle type")).toHaveText("Mutual Fund");
+    await instrumentForm.getByLabel("Name", { exact: true }).fill("Nifty Index Fund");
     await page.getByRole("button", { name: "Add instrument" }).click();
     const holding = page.getByRole("listitem").filter({ hasText: "Nifty Index Fund" });
     await expect(holding).toContainText("₹0.00");
 
     await page.getByText("Log a contribution").click();
-    await expect(page.getByRole("combobox").filter({ hasText: "Nifty Index Fund" })).toBeVisible();
+    const contribution = form(page, "Log a contribution");
+    await expect(comboboxValue(contribution, "Instrument")).toHaveText("Nifty Index Fund");
     // The form defaults to the first account; it must be shown by name.
-    await expect(page.getByRole("combobox").filter({ hasText: "HDFC" })).toBeVisible();
-    await page.locator("#inv-amount").fill("1000");
+    await expect(comboboxValue(contribution, "From account")).toHaveText("HDFC");
+    await contribution.getByLabel("Amount").fill("1000");
     await page.getByRole("button", { name: "Log contribution" }).click();
     await expect(holding).toContainText("₹1,000.00");
     await expectNoRawIdsInDropdowns(page);
@@ -148,8 +151,9 @@ test("new user: onboarding to reports, persisted across reload and re-login", as
     await page.goto("/iou");
     await expectAppPage(page);
     await page.getByRole("tab", { name: /Payables/ }).click();
-    await page.locator("#pay-name").fill("Ravi");
-    await page.locator("#pay-amount").fill("250");
+    const payable = form(page, "Add a payable");
+    await payable.getByLabel("Who fronted it").fill("Ravi");
+    await payable.getByLabel("Your share").fill("250");
     await page.getByRole("button", { name: "Add payable" }).click();
     await expect(page.getByRole("tab", { name: "Payables (1)" })).toBeVisible();
     await expect(page.getByText("₹0.00 / ₹250.00")).toBeVisible();
@@ -198,7 +202,13 @@ test("new user: onboarding to reports, persisted across reload and re-login", as
   });
 });
 
-test("the app renders in Geist, not a fallback font", async ({ page, user, signIn }) => {
+/**
+ * M8's typography contract, checked in a real browser: Geist for body and UI,
+ * Instrument Serif for display headings. Still guards the original bug — a
+ * self-referencing --font-sans token that silently dropped the whole app to a
+ * serif fallback — which is why body is asserted not to be a generic serif.
+ */
+test("body renders in Geist and display headings in Instrument Serif", async ({ page, user, signIn }) => {
   await signIn(user);
   await page.goto("/");
   await expectAppPage(page);
@@ -209,9 +219,13 @@ test("the app renders in Geist, not a fallback font", async ({ page, user, signI
     return { body: getComputedStyle(document.body).fontFamily, heading, loaded };
   });
   const primary = (family: string) => family.split(",")[0].replace(/["']/g, "").trim();
-  expect(primary(font.body)).toMatch(/Geist/);
-  expect(primary(font.heading)).toMatch(/Geist/);
+
+  expect(primary(font.body), "body face").toMatch(/Geist/);
+  expect(primary(font.heading), "h1 face").toMatch(/Instrument.?Serif/i);
+  // Both faces actually downloaded — a name in the stack proves nothing on its own.
   expect(font.loaded).toContain(primary(font.body));
+  expect(font.loaded).toContain(primary(font.heading));
+  // The original regression: a broken token drops the app to the generic serif.
   expect(font.body).not.toMatch(/^\s*(serif|Times)/i);
 });
 
