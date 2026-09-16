@@ -48,7 +48,14 @@ export default async function IouPage() {
       </section>
 
       <Tabs defaultValue="receivables">
-        <TabsList>
+        {/*
+          Three nowrap labels with counts do not fit a 390px phone, and the
+          primitive's `w-fit`/`h-8` made the whole page scroll sideways rather
+          than the strip adapt. Wrapping beats an inner scrollbar here: a tab
+          a person cannot see is a tab they will not find.
+          Guarded by tests/e2e/layout.spec.ts.
+        */}
+        <TabsList className="h-auto w-full flex-wrap">
           <TabsTrigger value="receivables">Receivables ({receivables.length})</TabsTrigger>
           <TabsTrigger value="payables">Payables ({payables.length})</TabsTrigger>
           <TabsTrigger value="reimbursements">Reimbursements ({reimbursements.length})</TabsTrigger>

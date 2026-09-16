@@ -37,4 +37,20 @@ describe("app shell", () => {
   it("leaves room for the bottom bar so content is not hidden behind it", () => {
     expect(html()).toMatch(/<main[^>]*class="[^"]*pb-/);
   });
+
+  /**
+   * M8 design spec: "Settings lives in the header, not the tab bar. It is
+   * opened rarely and does not deserve equal weight." The four modules in the
+   * bar are guarded separately by app-nav.test.tsx.
+   */
+  it("reaches Account Settings from the header", () => {
+    expect(html()).toMatch(/<a[^>]*href="\/settings"/);
+  });
+
+  it("gives the settings link a name, not just an icon", () => {
+    // An icon-only link with no accessible name is unusable by screen reader
+    // and unaddressable by the E2E suite.
+    const link = html().match(/<a[^>]*href="\/settings"[^>]*>/)![0];
+    expect(link).toMatch(/aria-label="[^"]*Settings/i);
+  });
 });

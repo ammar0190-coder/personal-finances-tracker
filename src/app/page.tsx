@@ -9,7 +9,8 @@ import { TransactionActions } from "@/components/transactions/transaction-action
 import { AccountRow } from "@/components/dashboard/account-row";
 import { DeactivateCategoryButton } from "@/components/categories/deactivate-category-button";
 import { RecurringSection } from "@/components/recurring/recurring-section";
-import { BurnDown } from "@/components/dashboard/burn-down";
+import { PeriodBlock } from "@/components/dashboard/period-block";
+import { DateRangeControl } from "@/components/dashboard/date-range-control";
 import { IouSnapshot } from "@/components/dashboard/iou-snapshot";
 import { SeedCategoriesButton } from "@/components/onboarding/seed-categories-button";
 import { formatMoney } from "@/lib/ledger/format";
@@ -23,15 +24,27 @@ import { TRANSACTION_TYPE_LABELS, labelFor } from "@/lib/select-options";
  * date-range audit settled (docs/superpowers/specs/2026-09-16-m8-dashboard-range-audit.md):
  *
  *   Accounts        — a position. Never scoped to a period.
- *   This cycle      — the one computed block, and so the one card.
+ *   Selected period — the one computed block, and so the one card. The ONLY
+ *                     thing the date-range control scopes.
  *   Recurring       — relative to today, not to any selected window.
  *   IOUs            — a position, below balances and burn-down as §8 ranks it.
  *   Recent activity — a feed of the latest entries, not a window.
  *
  * Investments are deliberately absent; they live only in their own module
  * (§6, §8).
+ *
+ * The `from`/`to` params reach exactly two components — the picker, which
+ * shows what is selected, and the period block, which is what it scopes.
+ * `src/app/__tests__/dashboard-scope.test.ts` fails if a third ever receives
+ * them, because "the whole view recalculates" (§8, read literally) would turn
+ * a balance into a figure describing no moment in time.
  */
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
+  const { from, to } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -113,7 +126,9 @@ export default async function DashboardPage() {
             </details>
           </section>
 
-          <BurnDown />
+          <DateRangeControl from={from} to={to} isCustom={Boolean(from && to)} />
+
+          <PeriodBlock from={from} to={to} />
 
           <RecurringSection accounts={accounts} categories={categories} />
 

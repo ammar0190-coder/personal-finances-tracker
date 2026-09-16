@@ -12,30 +12,31 @@ through `superpowers:writing-plans` first, per `CLAUDE.md`.
 **M0 through M6 are done and verified**, live, against real Supabase (not mocked), and everything
 they built is covered by an automated test that actually runs against Postgres.
 
-**Three PRD MVP items are nevertheless still unbuilt**, found on 2026-09-16 while checking the
-code against the PRD. Each has schema support but no UI, which is why they went unnoticed:
+**Three PRD MVP items were found unbuilt on 2026-09-16** while checking the code against the PRD.
+Each had schema support but no UI, which is why they went unnoticed. All three were folded into
+**M8c and are now resolved:**
 
 | PRD | Item | State |
 |---|---|---|
-| §8 Controls | Custom date-range picker on the Dashboard | Not built. Reports' weekly/monthly/all-time toggle is §9 and does not cover it. |
-| §2, §8 Settings | Privacy-mode configuration | `users.privacy_mode_enabled` exists and masking works, but nothing can change the setting — there is no Account Settings page at all. |
-| §2, §8 Settings | PIN quick-unlock | `users.pin_hash` exists; no UI, no hashing, no unlock flow. |
+| §8 Controls | Custom date-range picker on the Dashboard | **Built** (M8c), on the terms of the approved audit and D-16: it scopes the period block and nothing else. |
+| §2, §8 Settings | Privacy-mode configuration | **Built** (M8c). Account Settings now exists; the switch writes `users.privacy_mode_enabled`. |
+| §2, §8 Settings | PIN quick-unlock | **Deliberately not built** (D-18). The row renders inert and a static assertion fails if anyone wires it to `pin_hash`. It is the one MVP item deferred, to its own security milestone. |
 
-All three are folded into **M8c**, and none of them is built yet. An earlier version of this file
-claimed every PRD MVP feature (§2–§13) was built; that was wrong, and the claim is corrected here
-rather than quietly dropped.
+An earlier version of this file claimed every PRD MVP feature (§2–§13) was built; that was wrong,
+and the claim was corrected rather than quietly dropped.
 
 **M7 is effectively done:** the app is live at
 `https://personal-finances-tracker-px1n.vercel.app`, and real Google sign-in and data entry work
 there (2026-09-16). Its one open item is a phone "Add to Home Screen" check, which only Ammar can
 do.
 
-**M8a and M8b are done** (2026-09-16): the app has a design system, an app shell, a restructured
-Dashboard, quick-add, and every module screen reskinned. **M8c is next** — Account Settings, the
-theme toggle and the date-range control, which is the same list as the three gaps above.
+**M8a, M8b and M8c are all done** (2026-09-16): the app has a design system, an app shell, a
+restructured Dashboard, quick-add, every module screen reskinned, and now Account Settings, a
+dark/light theme toggle and the Dashboard date-range control. **M8 is complete**, which makes the
+PRD's MVP complete apart from the PIN, deferred on purpose (D-18).
 
-Pipeline as of 2026-09-16, all green: lint, `tsc` and build clean; 163 unit, 31 live integration
-and 8 pgTAP database tests pass, plus a 6-test Playwright E2E suite against local Supabase
+Pipeline as of 2026-09-16, all green: lint, `tsc` and build clean; 232 unit, 31 live integration
+and 8 pgTAP database tests pass, plus a 12-test Playwright E2E suite against local Supabase
 (`npm run test:e2e`, D-15). The secret scan is clean.
 
 The core money-math library (`src/lib/ledger/`) is complete for everything specified in PRD §10 —
@@ -207,7 +208,7 @@ written test-first:
 
 The session also made the Playwright E2E suite permanent (D-15).
 
-### M8 — Visual design pass — **M8a and M8b done; M8c next**
+### M8 — Visual design pass — **DONE (M8a, M8b, M8c)**
 
 Ammar's verdict on the live site: it "looks quite sloppy… AI slop". The PRD specifies only
 "Tailwind CSS + shadcn/ui" (§14) and gives no visual direction, so **this milestone starts with
@@ -259,11 +260,34 @@ Investments, IOU, Reports, onboarding and auth on the new system, with no cards 
 colour constants had drifted from the CSS so the trend line was still the blue M8a removed (D-19),
 and `transaction_type` display labels were missing for the four types no one picks (D-20).
 
-#### M8c — Settings, theme toggle, date-range control — **NEXT**
+#### M8c — Settings, theme toggle, date-range control — **DONE**
 
-The two remaining PRD §8 surfaces plus the toggle. The date-range control is bound by D-16: it
-scopes period figures only, and must not become a global Dashboard filter. The PIN row renders
-inert, with no `pin_hash` path and a static assertion enforcing it (D-18).
+**Account Settings** (`/settings`, reached from the header, never the tab bar): privacy mode as a
+real `role="switch"` writing `users.privacy_mode_enabled`; the theme toggle; the per-user timezone
+(§10.11); and the inert PIN row.
+
+**The theme toggle** is hand-rolled — no `next-themes` — as the design spec §4.1 required: a
+blocking init script so nothing flashes, `localStorage` persistence, and `useSyncExternalStore`
+rather than an effect (D-21).
+
+**The date-range control** is bound by D-16 and built to it: it scopes the period block and
+nothing else. A non-cycle window changes the block's SHAPE — spend and income, no ceiling, no
+earmarking, no available-to-spend — rather than degrading the burn-down's numbers. The rule is
+enforced two ways: structurally, by asserting `listAccountsWithBalances` and `getIouSnapshot` take
+no period argument, and at the page level, by asserting the range reaches exactly two components.
+
+**The PIN stays inert** (D-18), and the static assertion that enforces it now exists. It scans
+runtime source with comments stripped, and the stripper is itself tested against the inputs that
+would silence it.
+
+**Four defects found, three of them not on any list:**
+- the timezone picker would have shown **every** user `Africa/Abidjan` as their zone (D-22);
+- the light theme logged a hydration mismatch on every load (D-21);
+- the app scrolled sideways at phone width — 457px in a 390px viewport — partly pre-existing,
+  partly caused by the new settings gear (D-24);
+- the IOU tab strip overflowed independently, also pre-existing (D-24).
+
+Two of these were found by looking at rendered screenshots, not by the suite.
 
 ## What's deliberately not here
 

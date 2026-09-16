@@ -596,3 +596,140 @@ than rendering nothing: a blank cell hides the problem.
 **Guarded by** `src/lib/__tests__/enum-labels.test.ts`, which checks each label set against the
 generated `Constants` block in `src/types/database.ts` — so adding a value to a database enum
 fails the test until it has a label.
+
+---
+
+## D-21: The theme is a device preference, not an account setting, and dark is not the OS's call
+
+> DRAFT — written 2026-09-16, awaiting Ammar's read.
+
+**Date** 2026-09-16
+**Milestone** M8c
+
+**Two questions the spec left open**, both answered the same way — by treating the theme as a
+property of the browser you are looking at, not of the account.
+
+1. **Where it is stored.** `localStorage`, not `users`. A schema column would need a migration and
+   a write on every toggle, and would then fight the blocking init script for which one wins on
+   first paint. The cost is that the choice does not follow you to a new device, which is the
+   correct behaviour for a display preference anyway — the Settings copy says so out loud.
+2. **Whether it follows `prefers-color-scheme`.** It does not. M8a designed the entire palette
+   against the near-black ground and derived the light scale from it; honouring the OS would put a
+   light-OS user on the derived scale without ever having asked for it. Dark is the product
+   default and the toggle is how light is reached.
+
+**How it avoids a flash**, per the design spec §4.1: the server renders `dark` on `<html>`, and a
+blocking inline script in `<head>` only ever has to REMOVE it. The default case therefore costs
+nothing and the light case never flashes.
+
+**Consequences that had to be handled, each with a test:**
+
+- **`<html>` needs `suppressHydrationWarning`.** The script mutates the element before React
+  hydrates, so the server's `className` and the client's disagree by design. Without it, every
+  light-theme load logged a hydration mismatch — found by the E2E console guard, not by reasoning.
+- **The toggle reads the theme with `useSyncExternalStore`, not an effect.** `localStorage` is an
+  external store; a `useEffect` that calls `setState` on mount is both a lint error
+  (`react-hooks/set-state-in-effect`) and the wrong model. The server snapshot is `dark`, matching
+  what was rendered, so hydration agrees. Subscribing to `storage` also syncs other tabs, free.
+- **Storage that throws is survivable.** In a private window `localStorage` access throws rather
+  than returning null. Every read and write is wrapped, and `applyTheme` changes the class BEFORE
+  persisting — an unwritable store costs the preference, never the visible theme.
+
+**Guarded by** `src/lib/__tests__/theme.test.ts`, which runs the real init-script text against a
+stand-in document rather than string-matching it, and `tests/e2e/m8c.spec.ts`, which switches
+theme in a real browser and asserts it survives a reload and a navigation.
+
+---
+
+## D-22: `Intl.supportedValuesOf` returns legacy zone names, and the timezone picker must canonicalise
+
+> DRAFT — written 2026-09-16, awaiting Ammar's read.
+
+**Date** 2026-09-16
+**Milestone** M8c
+
+**The bug this records**, found by a test written before the picker worked.
+
+`Intl.supportedValuesOf("timeZone")` returns the runtime's own spelling of each zone, which on
+current Node is the **legacy alias**: `Asia/Calcutta`, not `Asia/Kolkata`; `Europe/Kiev`, not
+`Europe/Kyiv`. The schema's default is `Asia/Kolkata`
+(`20260828120000_initial_schema.sql`), and a browser reports `Asia/Kolkata` too.
+
+A native `<select>` whose `value` matches no `<option>` does not fail loudly — it silently displays
+its **first** option. So every user would have opened Account Settings, seen **`Africa/Abidjan`**
+presented as their timezone, and overwritten a perfectly correct setting by touching anything else
+on the row. The column is `not null default 'Asia/Kolkata'`, so this was not an edge case; it was
+everyone, on first visit.
+
+**Chosen.** `canonicalTimezone()` resolves a stored value through
+`Intl.DateTimeFormat(...).resolvedOptions().timeZone`, which is the same normalisation the runtime
+applies to the list itself, so the two can no longer disagree. `timezoneOptions()` additionally
+prepends the stored zone if the runtime still does not list it, so the select can never
+misrepresent what is saved. An unresolvable value is returned unchanged rather than throwing —
+showing someone the odd string they have stored beats crashing Settings over it.
+
+**The visible consequence, accepted:** an Indian user sees `Asia/Calcutta` rather than
+`Asia/Kolkata`. That is a real IANA name and the stored value stays whatever it was, so nothing is
+wrong — it just reads as dated. Mapping legacy aliases back to modern display names needs a
+hand-maintained table that drifts as ICU updates, which is a worse trade than the wording.
+
+**Guarded by** `src/lib/__tests__/timezones.test.ts`, which asserts the canonical form is in the
+list and explicitly that the selected option is **not** `Africa/Abidjan`.
+
+---
+
+## D-23: `computePeriodIncome` is an extraction, and §10.9 is deliberately not folded into it
+
+> DRAFT — written 2026-09-16, awaiting Ammar's read.
+
+**Date** 2026-09-16
+**Milestone** M8c
+
+**Why it exists.** The date-range control shows income for a non-cycle window (§8's "raw totals",
+per D-16 Q3). The identical filter already lived inline in `getSavingsRateForPeriod` as the
+denominator of §10.5's savings rate. Writing a second copy is precisely the drift that produced
+D-19, where two copies of the chart colours disagreed and the wrong one won — so the single copy
+moved to `src/lib/ledger/income.ts` and both callers use it.
+
+**This is a refactor, not new money math.** Behaviour is unchanged: `type === "income"`, dated
+within the window, both bounds inclusive. The savings rate is numerically identical before and
+after, which the 31 live integration tests confirm.
+
+**The part that looks like an omission, and is not.** PRD §10.9 says an *unlinked* refund
+"behaves like Misc income". The savings-rate denominator has only ever counted `type === "income"`,
+so folding §10.9 in here would **silently move the savings rate** — a figure this milestone has no
+business changing. A test pins the current behaviour explicitly, so the next person to notice the
+gap finds a decision rather than an oversight.
+
+Whether §10.9 *should* apply to the savings-rate denominator is a real open question, and one for
+Ammar and the PRD — not for a UI milestone.
+
+---
+
+## D-24: The Dashboard header is allowed to wrap, because it was 67px too wide on a phone
+
+> DRAFT — written 2026-09-16, awaiting Ammar's read.
+
+**Date** 2026-09-16
+**Milestone** M8c
+
+**The bug this records.** At 390px the page was **457px wide**, so every screen scrolled sideways
+and the "Sign out" button sat off the edge — in an app that is phone-first and installed as a PWA
+(§14). Measuring attributed it honestly: the header already overflowed to **413px** before M8c,
+and adding the Settings gear took it to 457px. So M8a shipped the defect and M8c made it worse;
+both halves are true and the fix covers both.
+
+**Cause.** A flex item will not shrink below its content unless it is told to. The title column
+had no `min-w-0`, so a long title or subtitle set the column's width and pushed the actions row
+past the viewport. `justify-between` then had nothing left to give.
+
+**Chosen.** `flex-wrap` on the header with `min-w-0` on the title column and `truncate` on the
+subtitle, so the actions drop to a second line on a phone instead of off the screen. The IOU tab
+strip was a second, independent instance — three `whitespace-nowrap` labels in a `w-fit` list —
+fixed on that page with `h-auto w-full flex-wrap` rather than by changing the shared primitive.
+Wrapping beat an inner scrollbar there: a tab a person cannot see is a tab they will not find.
+
+**Guarded by** `tests/e2e/layout.spec.ts`, which fails if any of the five app pages is wider than a
+390px viewport and names the offending elements in the message. Worth stating plainly: a fully
+green suite reported this as fine for two milestones. It was found by **looking at a screenshot** —
+the third time that has happened on this project.

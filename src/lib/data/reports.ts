@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { computeSpendByCategory, type CategorizedTransaction } from "@/lib/ledger/category-spend";
 import { computePeriodSpend } from "@/lib/ledger/spend";
 import { computeRawSavingsTracked, computeSavingsRate } from "@/lib/ledger/savings";
+import { computePeriodIncome } from "@/lib/ledger/income";
 import { mapToLedgerTransactions } from "@/lib/data/ledger-mapping";
 import { listTransactions } from "@/lib/data/transactions";
 import { listAccounts } from "@/lib/data/accounts";
@@ -88,9 +89,7 @@ export async function getSavingsRateForPeriod(periodStart: string, periodEnd: st
   const savingsAccountIds = new Set(accounts.filter((a) => a.is_savings).map((a) => a.id));
   const raw = computeRawSavingsTracked(transactions, savingsAccountIds, periodStart, periodEnd);
 
-  const totalIncome = transactions
-    .filter((t) => t.type === "income" && t.date >= periodStart && t.date <= periodEnd)
-    .reduce((sum, t) => sum.plus(t.amount), new Decimal(0));
+  const totalIncome = computePeriodIncome(transactions, periodStart, periodEnd);
 
   const rate = computeSavingsRate(raw, totalIncome);
   return { rate: rate ? rate.toString() : null, raw: raw.toString() };

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { RegisterServiceWorker } from "@/components/pwa/register-service-worker";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,10 +45,26 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      // M8: dark is the default theme, not an opt-in. The toggle that reaches the
-      // light scale arrives in M8c; until then the app boots dark.
+      /*
+       * The blocking script below removes the `dark` class before React
+       * hydrates, so the server's className and the client's disagree BY
+       * DESIGN on this one element. Without this, every light-theme load
+       * logs a hydration mismatch. It suppresses that warning for this
+       * element's own attributes only — not for its subtree.
+       */
+      suppressHydrationWarning
+      // M8: dark is the default theme, not an opt-in, so the server renders it
+      // and the M8c toggle's init script below only ever has to REMOVE it.
       className={`dark ${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full antialiased`}
     >
+      <head>
+        {/*
+          Blocking, and before anything paints: a theme applied after first
+          paint is a visible flash of the other one. Hand-rolled rather than
+          pulling in next-themes for ~30 lines (M8 design spec §4.1).
+        */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col">
         {children}
         <RegisterServiceWorker />

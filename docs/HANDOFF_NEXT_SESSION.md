@@ -1,24 +1,26 @@
 # Handoff — for the next Claude Code session
 
-Rewritten **2026-09-16**, at the close of a session that ran the whole of M8a and M8b. If anything
-here disagrees with what you observe, trust the repo and fix this file.
+Rewritten **2026-09-16**, at the close of the session that built M8c. If anything here disagrees
+with what you observe, trust the repo and fix this file.
 
 **Open with `start-session`. Close with `close-session`.**
 
 ## 0. Before anything else
 
-- **Read `docs/HANDOFF_USER.md`.** The one thing that matters before building: **five commits are
-  sitting unpushed**, so the live site still runs the pre-M8 UI.
-- **The next milestone is M8c** (`docs/MASTER_PLAN.md`): Account Settings, the theme toggle, and
-  the date-range control. It is bound by two decisions that were argued out at length this
-  session — **D-16** (what the date range may and may not scope) and **D-18** (the PIN stays
-  inert). Read both before writing any of it.
+- **Read `docs/HANDOFF_USER.md`.** The one thing that matters: **seven commits are sitting
+  unpushed**, so the live site still runs the pre-M8 UI. Nothing from the entire redesign has
+  reached the remote.
+- **M8 is finished.** M8a, M8b and M8c are all built and green. There is no obvious "next
+  milestone" queued in `docs/MASTER_PLAN.md` — the PRD's MVP is complete apart from the PIN, which
+  is deferred on purpose (D-18). **Ask Ammar what comes next rather than picking something.**
 
 ## 1. Repo state, exactly
 
 ```
-Branch main. HEAD a2e462b, five commits ahead of origin/main, NONE pushed.
-Working tree clean.
+Branch main. Seven commits ahead of origin/main, NONE pushed.
+Working tree clean after the M8c commit.
+  (M8c)    M8c: Account Settings, theme toggle and the Dashboard date range
+  adff77b  docs: close out the M8a/M8b session
   a2e462b  M8b: reskin the module screens, onboarding and auth
   351e5f7  M8a: app shell, dashboard hierarchy and quick-add
   a401d20  M8a: resilient E2E baseline, design tokens and typography
@@ -37,47 +39,64 @@ Build/test output on disk, all gitignored: .next/, .next-e2e/, playwright-report
   directly times out; a phone hotspot works.
 - **The hosted Supabase project auto-pauses** on the free tier.
 - **`guard_git.sh` blocks a Bash command whose *text* contains a forbidden verb**, even inside a
-  quoted heredoc — writing a doc that merely mentions `git push` gets blocked. Use Write/Edit for
+  quoted heredoc — writing a doc that merely mentions the p-word gets blocked. Use Write/Edit for
   that text.
-- **Running the E2E suite rewrites `next-env.d.ts`** to point at `.next-e2e`, because the suite
-  builds with `NEXT_DIST_DIR`. It is a build artefact, not a change: `git checkout -- next-env.d.ts`
-  before handing over, or it lands in a commit.
+- **Running the E2E suite rewrites `next-env.d.ts`** to point at `.next-e2e`. It is a build
+  artefact, not a change: `git checkout -- next-env.d.ts` before handing over.
 - **`supabase test db` hangs**; use `npm run test:db` (D-12).
+- **The E2E suite runs a dev server, so Next.js dev-tools are in the DOM.** A bare
+  `getByLabel("To")` also matches the dev-tools button — scope selectors to a form or region.
+- **`page.screenshot()` hides the caret by default**, which mutates the DOM and makes React
+  report a hydration mismatch. Pass `caret: "initial"` when screenshotting for review.
 
 ## 3. What this session did
 
-**M8 design, settled with Ammar over several rounds** — spec at
-`docs/superpowers/specs/2026-09-16-m8-visual-design-design.md`, canvas artboards committed in
-`design/m8/` (the seeded 2.5 MB canvas output is gitignored; re-seed it from the `.dc.html` files).
-Instrument Serif for display headings only, Geist for everything operational, near-black ground,
-restrained indigo accent, colour reserved for exceptions.
+**M8c, the last slice of M8**, built under TDD throughout — every behavioural change had a test
+that was watched failing first.
 
-**The date-range audit** (`docs/superpowers/specs/2026-09-16-m8-dashboard-range-audit.md`) was a
-gate before any code, and it changed the shape of the work. See D-16.
+- **Account Settings** (`/settings`), reached from a header gear, never the tab bar. Privacy mode
+  (a real `role="switch"` writing `users.privacy_mode_enabled`), the theme toggle, the per-user
+  timezone (§10.11), and the inert PIN row.
+- **The theme toggle**, hand-rolled per the design spec §4.1 — no `next-themes` dependency. A
+  blocking init script so nothing flashes, `localStorage`, and `useSyncExternalStore` rather than
+  an effect. D-21.
+- **The Dashboard date-range control**, built strictly to the approved audit and D-16. It scopes
+  the period block and nothing else; a non-cycle window changes the block's SHAPE rather than
+  degrading the burn-down's numbers.
+- **The D-18 PIN boundary assertion** now exists, which closes the "documented but unenforced"
+  item the last handoff left open.
 
-**M8a:** design tokens, typography, the app shell (bottom bar on phones, sidebar on desktop),
-the Dashboard restructured to the approved hierarchy, and quick-add replacing the inline form.
-Before any of it, the Playwright walkthrough was made resilient.
+### How the date-range rule is actually enforced
 
-**M8b:** Investments, IOU, Reports, onboarding and auth on the new system, no cards on module
-pages, and all six recorded defects cleared.
+Worth knowing before touching the Dashboard, because it is deliberately belt-and-braces:
 
-**Five decisions recorded, D-16 to D-20, all `DRAFT`** awaiting Ammar's read.
+1. **Structurally** — `listAccountsWithBalances.length === 0` and `getIouSnapshot.length === 0`.
+   Adding a period parameter to either changes the arity and fails the test regardless of how it
+   is called.
+2. **At the page level** — every JSX tag on `src/app/page.tsx` receiving a `from`/`to` prop is
+   collected, and the set must be exactly `["DateRangeControl", "PeriodBlock"]`.
+3. **In a real browser** — `tests/e2e/m8c.spec.ts` applies a window, then asserts the account
+   balance and the entire recent-activity feed are byte-for-byte unchanged.
+
+All three are in place because the failure mode here is not a crash: it is a plausible-looking
+number that describes no moment in time.
 
 ### Bugs found that nobody asked for
 
-- **The chart colours had drifted.** M8a moved the trend line to teal in the CSS; Recharts renders
-  from a JS constant that still said blue, so the line stayed the exact colour the change existed
-  to remove. A test now ties the two copies together (D-19).
-- **`transaction_type` display labels were missing** for the four types a person never picks, so
-  an IOU repayment rendered as the raw `iou_repayment` in recent activity (D-20).
-- **Amounts were set in a monospace face** across nine files, against the type contract.
-- **Two cards survived the "no cards" pass invisibly** — the Dashboard's IOU snapshot returns
-  `null` when both totals are zero, so it never appeared in a screenshot, and `auth/error` was
-  never reskinned. Both found by grepping for remaining `Card` imports, not by looking.
-- **Recharts' default tooltip cursor** is an opaque light-grey block, unreadable on a dark ground.
+- **The timezone picker would have shown every user the wrong zone.**
+  `Intl.supportedValuesOf` returns legacy aliases (`Asia/Calcutta`), the schema default is
+  `Asia/Kolkata`, and a native `<select>` with an unmatched value silently shows its **first**
+  option — so Settings would have presented `Africa/Abidjan` as everyone's timezone, and any other
+  edit on that row would have overwritten the real one. D-22.
+- **The light theme logged a hydration mismatch on every load.** The init script mutates `<html>`
+  before React hydrates; `suppressHydrationWarning` is the fix. Caught by the E2E console guard.
+- **The app scrolled sideways on a phone** — 457px wide in a 390px viewport. Measurement
+  attributed it honestly: **413px before M8c** (so M8a shipped it) and 457px after the settings
+  gear was added. Both halves fixed. D-24.
+- **The IOU tab strip overflowed independently** — three nowrap labels in a `w-fit` list. D-24.
 
-**Looking at rendered screens caught things the suite did not, twice.** Keep doing it.
+**Two of those four were found by looking at screenshots, not by the suite.** That is now the
+third session running where that has been true. Keep doing it.
 
 ## 4. Pipeline at close (fresh run, 2026-09-16)
 
@@ -85,31 +104,54 @@ pages, and all six recorded defects cleared.
 |---|---|
 | `npm run lint` | clean |
 | `npx tsc --noEmit` | clean |
-| `npm run build` | clean |
-| `npm test` | 163 passed, 31 skipped (the integration files, run below) |
+| `npm run build` | clean; `/settings` present in the route table |
+| `npm test` | 232 passed, 31 skipped (the integration files, run below) |
 | `npm run test:integration` | **31/31 passed** |
 | `npm run test:db` | 8/8 ok |
-| `npm run test:e2e` | 6 passed (one is an intentional `test.fail()` proving the login-redirect guard) |
+| `npm run test:e2e` | **12 passed** (one is an intentional `test.fail()` proving the login-redirect guard) |
 | `.claude/hooks/scan_secrets.sh` | clean |
+| `ledger-check` | run in full; report in §6 |
 
 ## 5. Live loose ends
 
-- **Nothing is pushed.** Five commits local. The live site runs the pre-M8 UI until Ammar pushes.
-- **The integration suite's flakiness did not reproduce** this session — 31/31 on the close-out
-  run. It failed once during M8a's E2E, but that failure's error text was **not captured** and
-  Playwright wiped the artefacts on the next run, so it is unattributed. Do not claim it was the
-  known `PGRST303` clock artefact; it may have been. Next failure, keep the log before rerunning.
-- **`ledger-check` was not run**, deliberately: nothing in this session's diff touches money math.
-  The changes to `burn-down`, `masked-balance`, `iou-entry-row` and `holdings-list` are class names
-  only, and the walkthrough still asserts the exact end-to-end balance.
-- **The PIN boundary test does not exist yet.** D-18 specifies it; it lands with the Settings
-  screen in M8c. Until then the boundary is documented but unenforced.
+- **Nothing is pushed.** Seven commits local. The live site runs the pre-M8 UI until Ammar pushes.
+- **Nine DRAFT decisions await Ammar**, now thirteen: D-12 to D-15, D-16 to D-20, and **D-21 to
+  D-24** from this session.
 - **Carried over, still open:**
   - reimbursement flagging is a follow-up action, not a checkbox at logging time (PRD §12 wording);
-  - `getCurrentBudgetCycle` assumes a single `is_spend_account` — explicitly out of scope for the
-    date-range work, and it must not change behaviour by accident;
-  - recent activity's primary line is the account name, which reads oddly; it predates M8 and was
-    left alone.
-- **`CardTitle` renders a `div`, not a heading element**, so section titles are not in the
-  document outline. The new sections use real `<h2>`s; the remaining `CardTitle` (the burn-down)
-  does not. Worth fixing if that component is touched again.
+  - `getCurrentBudgetCycle` still assumes a single `is_spend_account`. M8c deliberately did not
+    change that — the range work routes around it rather than through it;
+  - recent activity's primary line is the account name, which reads oddly; predates M8;
+  - `CardTitle` renders a `div`, not a heading. The new period block is wrapped in a real
+    `<section aria-label>`, so it is addressable and in the outline; the burn-down's title itself
+    is still a div.
+
+### Two things found this session and deliberately NOT fixed
+
+Both are pre-existing and outside M8c's stated scope. Ammar's call.
+
+- **The account row collides on a phone.** `src/components/dashboard/account-row.tsx:12` — the
+  flex row has no `gap` and the name column no `min-w-0`, so "HDFC Spending" butts straight
+  against `₹xx,xx,xxx` at 390px. It fits the viewport, so `layout.spec.ts` does not catch it; it
+  simply reads as broken. One-line fix: `gap-3` on the row, `min-w-0` + `truncate` on the name.
+- **Date inputs render US-format (`mm/dd/yyyy`).** Native date inputs follow the browser locale,
+  and `<html lang="en">` gets en-US. `lang="en-IN"` would give `dd/mm/yyyy`, but it is a global
+  change affecting every page and seven pre-existing date inputs, not just the new picker.
+
+## 6. `ledger-check` at close
+
+Run in full, because the diff touches spend and income. Hazards 1, 3, 6 and 7 **PASS**; 2, 4 and 5
+are **N/A** (no IOU settlement, balance or edit/delete code in the diff).
+
+- Money stays decimal end to end. Every amount reaches the new code via `mapToLedgerTransactions`,
+  which applies `toMoneyString` per value at read time. No `Number()`, `parseFloat` or `toFixed` in
+  any new money path; `0.1 + 0.2 === 0.3` is asserted.
+- `computePeriodIncome` is an **extraction**, not new math — see D-23, including why PRD §10.9 is
+  deliberately not folded into it and why that is a question for the PRD rather than a UI
+  milestone.
+- **One pre-existing caveat worth a look.** `loadLedgerTransactions` contains `iouEntries ?? []`
+  and `groupExpenses ?? []`: a failed query silently becomes an empty list. `linkedTransactionId`
+  would then go unresolved, repayments and refunds would stop reducing spend, and **period spend
+  would read too high**. This is verbatim the code that was already inside `getCurrentBudgetCycle`
+  — not introduced here — but extracting it means two callers now share it instead of one. Left
+  alone deliberately; `ledger-check` is report-only.
