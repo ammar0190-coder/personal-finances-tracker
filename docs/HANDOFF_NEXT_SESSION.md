@@ -98,7 +98,7 @@ number that describes no moment in time.
 **Two of those four were found by looking at screenshots, not by the suite.** That is now the
 third session running where that has been true. Keep doing it.
 
-## 4. Pipeline at close (fresh run, 2026-09-16)
+## 4. Pipeline at the M8c commit (fresh run, 2026-09-16)
 
 | Command | Result |
 |---|---|
@@ -111,6 +111,8 @@ third session running where that has been true. Keep doing it.
 | `npm run test:e2e` | **12 passed** (one is an intentional `test.fail()` proving the login-redirect guard) |
 | `.claude/hooks/scan_secrets.sh` | clean |
 | `ledger-check` | run in full; report in §6 |
+
+Re-run in full during the stabilization pass that followed — see §7 for the current numbers.
 
 ## 5. Live loose ends
 
@@ -126,17 +128,16 @@ third session running where that has been true. Keep doing it.
     `<section aria-label>`, so it is addressable and in the outline; the burn-down's title itself
     is still a div.
 
-### Two things found this session and deliberately NOT fixed
+### The two things M8c left alone — one now fixed, one still open
 
-Both are pre-existing and outside M8c's stated scope. Ammar's call.
-
-- **The account row collides on a phone.** `src/components/dashboard/account-row.tsx:12` — the
-  flex row has no `gap` and the name column no `min-w-0`, so "HDFC Spending" butts straight
-  against `₹xx,xx,xxx` at 390px. It fits the viewport, so `layout.spec.ts` does not catch it; it
-  simply reads as broken. One-line fix: `gap-3` on the row, `min-w-0` + `truncate` on the name.
-- **Date inputs render US-format (`mm/dd/yyyy`).** Native date inputs follow the browser locale,
-  and `<html lang="en">` gets en-US. `lang="en-IN"` would give `dd/mm/yyyy`, but it is a global
-  change affecting every page and seven pre-existing date inputs, not just the new picker.
+- **The account row collision is FIXED** in the post-M8 stabilization pass (see §7). It was worse
+  than "no gap": measured, the name's box ended at 138px and the balance's began at 138px, so a
+  "do they overlap?" check passed on the broken layout. The row is now a grid that changes shape
+  at phone width.
+- **Date inputs still render US-format (`mm/dd/yyyy`)** — deliberately left alone. Native date
+  inputs follow the browser locale, and `<html lang="en">` gets en-US. `lang="en-IN"` would give
+  `dd/mm/yyyy`, but it is a global change affecting every page and seven pre-existing date inputs,
+  not just the date-range picker. **Do not change this without Ammar asking for it.**
 
 ## 6. `ledger-check` at close
 
@@ -155,3 +156,32 @@ are **N/A** (no IOU settlement, balance or edit/delete code in the diff).
   would read too high**. This is verbatim the code that was already inside `getCurrentBudgetCycle`
   — not introduced here — but extracting it means two callers now share it instead of one. Left
   alone deliberately; `ledger-check` is report-only.
+
+## 7. The post-M8 stabilization pass (2026-09-16, after the M8c commit)
+
+A deliberately small pass: no new milestone, one known defect, then deploy.
+
+**Fixed: the account row collided at phone width.** `src/components/dashboard/account-row.tsx` was
+a flex row with no `gap` and no `min-w-0`. It is now a grid that takes a different SHAPE on a
+phone — name beside its balance on the first line, account type beside the two secondary actions
+on the second — while desktop (md+) is byte-for-byte the layout it always had: name over type,
+then balance, then actions. `minmax(0,1fr)` is the load-bearing part; a bare `1fr` will not shrink
+below its content and pushes the balance out again.
+
+**No semantics changed.** `MaskedBalance`, `ReconcileDialog` and `DeactivateAccountButton` receive
+identical props; only the markup around them moved. Privacy masking, per-account reveal, and the
+credit-card `owed` treatment (D-17) are untouched.
+
+**Guarded by** a new test in `tests/e2e/layout.spec.ts`. Worth knowing why it asserts what it
+does: the first version checked "the name does not overlap the balance" and **passed on the broken
+layout**, because the gap was exactly zero rather than negative. Measuring first changed the
+assertion to a minimum 8px gap. It also asserts an ordinary name keeps a readable width, so a
+future "fix" that just truncates everything to a stub cannot pass.
+
+**`ledger-check` was not run**, on the same reasoning as the M8a/M8b session: nothing in this diff
+touches money math. It is markup only, and the E2E walkthrough still asserts the exact end-to-end
+balance of ₹48,549.50.
+
+**Pipeline after the fix, all green:** lint clean, `tsc` clean, build clean, **232 unit** (31
+skipped), **31/31 integration**, **8/8 database**, **13 E2E** (12 plus the new collision test),
+secret scan clean.
