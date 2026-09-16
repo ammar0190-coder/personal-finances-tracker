@@ -150,12 +150,16 @@ rather than stretching across the viewport.
 
 Fixed, following PRD §8's stated order:
 
-| | Block | Range-scoped | Masked |
+| | Block | Kind | Masked |
 |---|---|---|---|
-| 1 | **Your Accounts** — per-account rows; credit-card amount owed visually distinct from bank balances (§10.1) | No | Yes, masked by default with per-account reveal |
-| 2 | **This cycle** — spent and available, with burn-down | Yes | No |
-| 3 | **IOUs** — net receivable and payable, written-off excluded | Yes | No |
-| 4 | **Recent activity** | Yes | No |
+| 1 | **Your Accounts** — per-account rows; credit-card amount owed visually distinct from bank balances (§10.1) | Position — never range-scoped | Yes, masked by default with per-account reveal |
+| 2 | **This cycle / Selected period** — changes shape depending on whether the range is a real cycle | Cycle, or Range when the window is not a cycle | No |
+| 3 | **IOUs** — net receivable and payable, written-off excluded | Position — never range-scoped | No |
+| 4 | **Recent activity** | Feed — latest 15, not a window | No |
+
+An earlier draft of this table marked blocks 3 and 4 range-scoped. Both were wrong, and the §3.3
+audit is what caught them. The classifications above are the audited, approved ones — see
+`2026-09-16-m8-dashboard-range-audit.md`, which is authoritative for this question.
 
 The "range-scoped" column above records the *intent* for these four blocks. It is not a complete
 inventory of period-dependent figures and must not be treated as one — see the audit required in
@@ -202,11 +206,14 @@ against that ceiling; otherwise raw totals.
 computed for a past window. This is the single most important semantic rule in this document and
 must be asserted by a test.
 
-**This is a gate, not a step.** No implementation decision about the date-range control may be
-taken — and no code written — until an audit explicitly classifies **every** figure and control on
-the Dashboard as range-scoped, not-range-scoped, or relative-to-today. The audit is written down
-and approved before wiring begins. Do not assume the four blocks in §3.1 exhaust the
-period-dependent figures.
+**This was a gate, not a step — and it has been cleared.** The audit ran on 2026-09-16 and was
+approved: see `2026-09-16-m8-dashboard-range-audit.md`, which is authoritative for what the range
+scopes. It found **five** kinds of figure rather than the three anticipated here (position, range,
+cycle, today-relative, feed), and corrected two classifications in §3.1 that were wrong.
+
+Its headline, which governs the implementation: **most of the Dashboard is not period data.** The
+control scopes exactly one figure — spend-so-far, and only when the selected window is not the
+current cycle. Read the audit's conceptual model before touching this.
 
 This is the one area where an innocent-looking UI change can silently alter financial semantics,
 which is why it gets a gate rather than care. The PRD's distinctions the audit must respect:

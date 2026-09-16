@@ -9,9 +9,20 @@ through `superpowers:writing-plans` first, per `CLAUDE.md`.
 
 ## Status
 
-**M0 through M6 are done and verified**, live, against real Supabase (not mocked) — every PRD
-MVP feature (§2-§13) is now built and covered by an automated test that actually runs against
-Postgres. **M7 is effectively done:** the app is live at
+**M0 through M6 are done and verified**, live, against real Supabase (not mocked), and everything
+they built is covered by an automated test that actually runs against Postgres.
+
+**Three PRD MVP items are nevertheless still unbuilt**, found on 2026-09-16 while checking the
+code against the PRD. Each has schema support but no UI, which is why they went unnoticed:
+
+| PRD | Item | State |
+|---|---|---|
+| §8 Controls | Custom date-range picker on the Dashboard | Not built. Reports' weekly/monthly/all-time toggle is §9 and does not cover it. |
+| §2, §8 Settings | Privacy-mode configuration | `users.privacy_mode_enabled` exists and masking works, but nothing can change the setting — there is no Account Settings page at all. |
+| §2, §8 Settings | PIN quick-unlock | `users.pin_hash` exists; no UI, no hashing, no unlock flow. |
+
+All three are folded into M8. An earlier version of this file claimed every PRD MVP feature
+(§2–§13) was built; that was wrong, and the claim is corrected here rather than quietly dropped. **M7 is effectively done:** the app is live at
 `https://personal-finances-tracker-px1n.vercel.app`, and real Google sign-in and data entry work
 there (2026-09-16). Its one open item is a phone "Add to Home Screen" check, which only Ammar can
 do. **Next is M8, a visual design pass**: the app works but looks unfinished.
